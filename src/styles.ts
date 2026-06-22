@@ -291,6 +291,32 @@ export const Metrics = styled.div`
   }
 `;
 
+export const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+export const ActionButton = styled.button`
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+`;
+
 export const CnabInputShell = styled.div`
   position: relative;
   background: var(--input);
@@ -380,6 +406,36 @@ export const OverflowInputText = styled.span`
 
 export const SpaceDot = styled.span`
   color: rgba(156, 163, 175, 0.3);
+`;
+
+export const ValidationSummary = styled.div`
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #171a21;
+`;
+
+export const ValidationItem = styled.div<{ $tone: "error" | "warning" | "info" }>`
+  padding: 7px 9px;
+  border: 1px solid ${({ $tone }) => {
+    if ($tone === "error") return "#ef4444";
+    if ($tone === "warning") return "#f59e0b";
+    return "#38bdf8";
+  }};
+  border-radius: 6px;
+  background: ${({ $tone }) => {
+    if ($tone === "error") return "rgba(239, 68, 68, 0.14)";
+    if ($tone === "warning") return "rgba(245, 158, 11, 0.14)";
+    return "rgba(56, 189, 248, 0.12)";
+  }};
+  color: ${({ $tone }) => {
+    if ($tone === "error") return "#fecaca";
+    if ($tone === "warning") return "#fde68a";
+    return "#bae6fd";
+  }};
+  font-size: 12px;
+  line-height: 1.4;
 `;
 
 export const TooltipBox = styled(motion.div)`
@@ -574,8 +630,13 @@ export const CnabOutput = styled.div`
   min-height: 360px;
   flex: 1;
   overflow: auto;
-  padding: 8px 0 14px;
   background: var(--editor);
+`;
+
+export const VirtualCnabScroller = styled.div<{ $height: number }>`
+  position: relative;
+  min-width: max-content;
+  height: ${({ $height }) => $height}px;
 `;
 
 export const EmptyOutput = styled.div`
@@ -587,14 +648,18 @@ export const EmptyOutput = styled.div`
   font-size: 13px;
 `;
 
-export const CnabLine = styled.div`
+export const CnabLine = styled.div<{ $top: number }>`
+  position: absolute;
+  top: ${({ $top }) => $top}px;
+  left: 0;
   display: grid;
   grid-template-columns: 58px max-content;
   min-width: max-content;
+  height: 22px;
   color: var(--text);
   font-family: var(--mono);
   font-size: 13px;
-  line-height: 1.7;
+  line-height: 22px;
 
   &:hover {
     background: rgba(255, 255, 255, 0.045);
