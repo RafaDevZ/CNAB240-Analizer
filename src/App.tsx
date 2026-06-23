@@ -126,6 +126,16 @@ function decodificarRegistros(registros: RegistroBytes[]) {
   return registros.map((registro) => textDecoder.decode(registro.conteudoBytes));
 }
 
+async function calcularHashSha256(bytes: Uint8Array) {
+  if (bytes.length === 0) return "";
+
+  const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes));
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 const InfoBox = memo(function InfoBox({ selecao }: { selecao: CampoSelecionado | null }) {
   if (!selecao) {
     return (
@@ -552,7 +562,8 @@ function renderInputOverlay(linhasInput: string[], registrosBytes: RegistroBytes
   };
 
   return linhasInput.map((linha, idx) => {
-    const invalidLine = registrosBytes[idx]?.tamanhoConteudo !== CNAB_RECORD_BYTES;
+    const registro = registrosBytes[idx];
+    const invalidLine = registro?.tamanhoConteudo !== CNAB_RECORD_BYTES;
     const lineBreak = idx < linhasInput.length - 1 ? "\n" : "";
     const content = (
       <S.PlainText>
@@ -577,8 +588,10 @@ export default function CnabViewer() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [texto, setTexto] = useState("");
   const [bytesArquivo, setBytesArquivo] = useState<Uint8Array>(new Uint8Array());
+  const [inputScrollTop, setInputScrollTop] = useState(0);
   const [origemBytes, setOrigemBytes] = useState<"paste" | "file">("paste");
   const [nomeArquivo, setNomeArquivo] = useState("");
+  const [hashArquivo, setHashArquivo] = useState("");
   const [campoSelecionado, setCampoSelecionado] = useState<CampoSelecionado | null>(null);
   const [banco, setBanco] = useState<Banco>("CAIXASIGCB");
 
@@ -610,6 +623,18 @@ export default function CnabViewer() {
     () => renderInputOverlay(linhas, registrosBytes, campoSelecionado),
     [campoSelecionado, linhas, registrosBytes]
   );
+
+  useEffect(() => {
+    let ativo = true;
+
+    void calcularHashSha256(bytesArquivo).then((hash) => {
+      if (ativo) setHashArquivo(hash);
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [bytesArquivo]);
 
   const atualizarTexto = useCallback((valor: string) => {
     setTexto(valor);
@@ -658,52 +683,75 @@ export default function CnabViewer() {
       <S.Workspace>
         <S.EditorPanel>
           <S.Toolbar>
-            <S.ControlGroup>
-              <S.PlainText>Layout</S.PlainText>
-              <S.Select value={banco} onChange={e => setBanco(e.target.value as Banco)}>
-                {bancos.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </S.Select>
-            </S.ControlGroup>
+            <S.ToolbarMain>
+              <S.ControlGroup>
+                <S.PlainText>Layout</S.PlainText>
+                <S.Select value={banco} onChange={e => setBanco(e.target.value as Banco)}>
+                  {bancos.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </S.Select>
+              </S.ControlGroup>
 
-            <S.Metrics>
-              <S.HiddenFileInput
-                ref={fileInputRef}
-                type="file"
-                onChange={(event) => {
-                  const arquivo = event.target.files?.[0];
-                  if (arquivo) void carregarArquivo(arquivo);
-                  event.target.value = "";
-                }}
-              />
-              <S.ActionButton type="button" onClick={() => fileInputRef.current?.click()}>
-                Abrir arquivo
-              </S.ActionButton>
-              <S.Pill>{resumoValidacao.totalBytesConteudo} bytes conteudo</S.Pill>
-              <S.Pill>{campoSelecionado?.campo.label ?? "Nenhum campo ativo"}</S.Pill>
-            </S.Metrics>
+              <S.Metrics>
+                <S.HiddenFileInput
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={(event) => {
+                    const arquivo = event.target.files?.[0];
+                    if (arquivo) void carregarArquivo(arquivo);
+                    event.target.value = "";
+                  }}
+                />
+                <S.ActionButton type="button" onClick={() => fileInputRef.current?.click()}>
+                  Abrir arquivo
+                </S.ActionButton>
+                <S.Pill>{resumoValidacao.totalBytesConteudo} bytes conteudo</S.Pill>
+                <S.Pill>{campoSelecionado?.campo.label ?? "Nenhum campo ativo"}</S.Pill>
+              </S.Metrics>
+            </S.ToolbarMain>
+            <S.LineBreakHeader>Quebra</S.LineBreakHeader>
           </S.Toolbar>
 
           <S.CnabInputShell>
-            <S.CnabInputOverlay ref={overlayRef} aria-hidden="true">
-              {overlayContent}
-            </S.CnabInputOverlay>
-            <S.CnabInput
-              rows={7}
-              wrap="off"
-              spellCheck={false}
-              placeholder="Cole o conteudo CNAB aqui..."
-              value={texto}
-              onScroll={(event) => {
-                if (!overlayRef.current) return;
-                overlayRef.current.scrollTop = event.currentTarget.scrollTop;
-                overlayRef.current.scrollLeft = event.currentTarget.scrollLeft;
-              }}
-              onChange={(e) => atualizarTexto(e.target.value)}
-            />
+            <S.CnabInputEditor>
+              <S.CnabInputOverlay ref={overlayRef} aria-hidden="true">
+                {overlayContent}
+              </S.CnabInputOverlay>
+              <S.CnabInput
+                rows={7}
+                wrap="off"
+                spellCheck={false}
+                placeholder="Cole o conteudo CNAB aqui..."
+                value={texto}
+                onScroll={(event) => {
+                  setInputScrollTop(event.currentTarget.scrollTop);
+                  if (!overlayRef.current) return;
+                  overlayRef.current.scrollTop = event.currentTarget.scrollTop;
+                  overlayRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                }}
+                onChange={(e) => atualizarTexto(e.target.value)}
+              />
+            </S.CnabInputEditor>
+            <S.LineBreakColumn aria-hidden="true">
+              <S.LineBreakRows>
+                <S.LineBreakMarkerTrack $scrollTop={inputScrollTop}>
+                  {registrosBytes.length > 0 ? (
+                    registrosBytes.map((registro, index) => (
+                      <S.LineBreakMarkerRow key={`${index}-${registro.quebra}`}>
+                        <S.LineBreakBadge>{registro.quebra}</S.LineBreakBadge>
+                      </S.LineBreakMarkerRow>
+                    ))
+                  ) : (
+                    <S.LineBreakMarkerRow>
+                      <S.LineBreakEmpty>-</S.LineBreakEmpty>
+                    </S.LineBreakMarkerRow>
+                  )}
+                </S.LineBreakMarkerTrack>
+              </S.LineBreakRows>
+            </S.LineBreakColumn>
           </S.CnabInputShell>
 
           {(resumoValidacao.bytesInvalidos || temBomUtf8 || resumoValidacao.linhasMultibyte.length > 0 || resumoValidacao.linhasComCr.length > 0 || origemBytes === "paste") && (
@@ -735,7 +783,10 @@ export default function CnabViewer() {
 
         <S.ViewerPanel>
           <S.PanelHeader>
-            <S.PlainText>Arquivo interpretado: {nomeArquivo || "conteudo colado"}</S.PlainText>
+            <S.FileInfo>
+              <S.PlainText>Arquivo interpretado: {nomeArquivo || "conteudo colado"}</S.PlainText>
+              {hashArquivo && <S.HashText>SHA-256: {hashArquivo}</S.HashText>}
+            </S.FileInfo>
             <S.PlainText>{bancos.find((item) => item.value === banco)?.label}</S.PlainText>
           </S.PanelHeader>
 

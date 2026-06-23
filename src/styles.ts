@@ -84,9 +84,11 @@ export const GlobalStyle = createGlobalStyle`
 `;
 
 export const AppShell = styled.div`
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(0, 122, 204, 0.06), transparent 280px),
     var(--bg);
@@ -188,19 +190,21 @@ export const Pill = styled.span<{ $invalid?: boolean; $valid?: boolean }>`
 
 export const Workspace = styled.main`
   width: min(100%, 1520px);
+  min-height: 0;
   margin: 0 auto;
-  padding: 18px;
+  padding: 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
-  grid-template-rows: auto minmax(360px, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     "editor details"
     "viewer details";
   gap: 14px;
 
   @media (max-width: 980px) {
+    overflow: auto;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto minmax(360px, 1fr);
+    grid-template-rows: auto auto minmax(320px, 1fr);
     grid-template-areas:
       "editor"
       "details"
@@ -222,17 +226,29 @@ const PanelBase = styled.section`
 export const EditorPanel = styled(PanelBase)`
   grid-area: editor;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
 `;
 
 export const Toolbar = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+
+  @media (max-width: 680px) {
+    grid-template-columns: minmax(0, 1fr) 64px;
+  }
+`;
+
+export const ToolbarMain = styled.div`
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-muted);
 
   @media (max-width: 680px) {
     align-items: stretch;
@@ -318,9 +334,20 @@ export const ActionButton = styled.button`
 `;
 
 export const CnabInputShell = styled.div`
-  position: relative;
+  --cnab-input-line-height: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
   background: var(--input);
   overflow: hidden;
+
+  @media (max-width: 680px) {
+    grid-template-columns: minmax(0, 1fr) 64px;
+  }
+`;
+
+export const CnabInputEditor = styled.div`
+  position: relative;
+  min-width: 0;
 `;
 
 const InputLayerBase = styled.pre`
@@ -332,7 +359,7 @@ const InputLayerBase = styled.pre`
   border-bottom: 1px solid var(--border);
   font-family: var(--mono);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: var(--cnab-input-line-height);
   white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
@@ -355,7 +382,7 @@ export const CnabInput = styled.textarea`
   display: block;
   margin: 0;
   padding: 14px;
-  resize: vertical;
+  resize: none;
   border: 0;
   border-bottom: 1px solid var(--border);
   border-radius: 0;
@@ -365,7 +392,7 @@ export const CnabInput = styled.textarea`
   outline: none;
   font-family: var(--mono);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: var(--cnab-input-line-height);
   white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
@@ -386,7 +413,7 @@ export const CnabInputHighlight = styled.span<{ $bgColor: string; $textColor: st
   border-radius: 2px;
   background-color: ${({ $bgColor }) => $bgColor};
   color: ${({ $textColor }) => $textColor};
-  font-weight: 700;
+  font-weight: 400;
   outline: 1px solid rgba(255, 255, 255, 0.18);
 `;
 
@@ -401,11 +428,72 @@ export const OverflowInputText = styled.span`
   border-radius: 2px;
   background: #ef233c;
   color: #ffffff;
-  font-weight: 800;
+  font-weight: 400;
 `;
 
 export const SpaceDot = styled.span`
   color: rgba(156, 163, 175, 0.3);
+`;
+
+export const LineBreakColumn = styled.div`
+  min-height: 168px;
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: #11141a;
+  overflow: hidden;
+  pointer-events: none;
+`;
+
+export const LineBreakHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-left: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+`;
+
+export const LineBreakRows = styled.div`
+  position: relative;
+  height: 100%;
+  padding-top: 14px;
+  overflow: hidden;
+`;
+
+export const LineBreakMarkerTrack = styled.div<{ $scrollTop: number }>`
+  position: relative;
+  transform: translateY(-${({ $scrollTop }) => $scrollTop}px);
+`;
+
+export const LineBreakMarkerRow = styled.div`
+  display: flex;
+  height: var(--cnab-input-line-height);
+  align-items: center;
+  justify-content: center;
+`;
+
+export const LineBreakBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  border: 1px solid rgba(79, 193, 255, 0.42);
+  border-radius: 4px;
+  background: rgba(79, 193, 255, 0.1);
+  color: #7dd3fc;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  vertical-align: 1px;
+`;
+
+export const LineBreakEmpty = styled.span`
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
 `;
 
 export const ValidationSummary = styled.div`
@@ -604,6 +692,7 @@ export const FieldDescription = styled.dd`
 export const ViewerPanel = styled(PanelBase)`
   grid-area: viewer;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -622,12 +711,29 @@ export const PanelHeader = styled.div`
   text-transform: uppercase;
 
   @media (max-width: 680px) {
+    flex-direction: column;
     font-size: 11px;
   }
 `;
 
+export const FileInfo = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+`;
+
+export const HashText = styled.span`
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-transform: none;
+`;
+
 export const CnabOutput = styled.div`
-  min-height: 360px;
+  min-height: 0;
   flex: 1;
   overflow: auto;
   background: var(--editor);
@@ -704,9 +810,9 @@ export const Statusbar = styled.div`
   justify-content: space-between;
   gap: 12px;
   padding: 0 14px;
-  border-top: 1px solid #006bb3;
-  background: var(--accent-dark);
-  color: #dbeafe;
+  border-top: 1px solid var(--border);
+  background: var(--titlebar);
+  color: var(--muted);
   font-size: 12px;
 
   @media (max-width: 680px) {
