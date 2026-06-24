@@ -90,7 +90,7 @@ const ExportReportPage = memo(function ExportReportPage() {
       "",
       "TOTAIS",
       `Linhas: ${reportObject.totais.linhas}`,
-      `Bytes de conteudo: ${reportObject.totais.bytesConteudo}`,
+      `Bytes com quebra: ${reportObject.totais.bytesConteudo}`,
       "",
       "VALIDACAO",
       `Bytes invalidos: ${reportObject.validacao.bytesInvalidos ? "Sim" : "Nao"}`,

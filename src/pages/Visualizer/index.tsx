@@ -1,4 +1,4 @@
-import { memo, type Dispatch, type ReactNode, type RefObject, type SetStateAction, type UIEvent } from "react";
+import { memo, useCallback, useEffect, useRef, type Dispatch, type ReactNode, type RefObject, type SetStateAction, type UIEvent } from "react";
 import { getBankBrand, type Banco, type CampoSelecionado, type RegistroBytes, type ResumoValidacao } from "../../contexts/CnabContext";
 import * as S from "./styles";
 
@@ -7,12 +7,11 @@ type VisualizerPageProps = {
   bancos: Array<{ value: Banco; label: string }>;
   campoSelecionado: CampoSelecionado | null;
   detailsPanel: ReactNode;
-  fileInputRef: RefObject<HTMLInputElement | null>;
   hashArquivo: string;
   inputScrollTop: number;
   nomeArquivo: string;
   overlayContent: ReactNode;
-  overlayRef: RefObject<HTMLPreElement | null>;
+  overlayRef: RefObject<HTMLDivElement | null>;
   origemBytes: "paste" | "file";
   registrosBytes: RegistroBytes[];
   resumoValidacao: ResumoValidacao;
@@ -21,7 +20,6 @@ type VisualizerPageProps = {
   temBomUtf8: boolean;
   texto: string;
   atualizarTexto: (valor: string) => void;
-  carregarArquivo: (arquivo: File) => Promise<void>;
   viewerOutput: ReactNode;
 };
 
@@ -30,7 +28,6 @@ const VisualizerPage = memo(function VisualizerPage({
   bancos,
   campoSelecionado,
   detailsPanel,
-  fileInputRef,
   hashArquivo,
   inputScrollTop,
   nomeArquivo,
@@ -44,16 +41,37 @@ const VisualizerPage = memo(function VisualizerPage({
   temBomUtf8,
   texto,
   atualizarTexto,
-  carregarArquivo,
   viewerOutput,
 }: VisualizerPageProps) {
   const bankBrand = getBankBrand(banco);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const lineBreakTrackRef = useRef<HTMLDivElement>(null);
+  const syncingFromStateRef = useRef(false);
+
+  const syncInputLayers = useCallback((scrollTop: number, scrollLeft = inputRef.current?.scrollLeft ?? 0) => {
+    if (overlayRef.current) {
+      overlayRef.current.scrollTop = scrollTop;
+      overlayRef.current.scrollLeft = scrollLeft;
+    }
+    if (lineBreakTrackRef.current) {
+      lineBreakTrackRef.current.style.transform = `translateY(-${scrollTop}px)`;
+    }
+  }, [overlayRef]);
+
+  useEffect(() => {
+    if (!inputRef.current || Math.abs(inputRef.current.scrollTop - inputScrollTop) <= 1) return;
+    syncingFromStateRef.current = true;
+    inputRef.current.scrollTop = inputScrollTop;
+    syncInputLayers(inputScrollTop);
+    requestAnimationFrame(() => {
+      syncingFromStateRef.current = false;
+    });
+  }, [inputScrollTop, syncInputLayers]);
 
   const handleInputScroll = (event: UIEvent<HTMLTextAreaElement>) => {
-    setInputScrollTop(event.currentTarget.scrollTop);
-    if (!overlayRef.current) return;
-    overlayRef.current.scrollTop = event.currentTarget.scrollTop;
-    overlayRef.current.scrollLeft = event.currentTarget.scrollLeft;
+    const { scrollTop, scrollLeft } = event.currentTarget;
+    syncInputLayers(scrollTop, scrollLeft);
+    if (!syncingFromStateRef.current) setInputScrollTop(scrollTop);
   };
 
   return (
@@ -73,19 +91,16 @@ const VisualizerPage = memo(function VisualizerPage({
             </S.ControlGroup>
 
             <S.Metrics>
-              <S.HiddenFileInput
-                ref={fileInputRef}
-                type="file"
-                onChange={(event) => {
-                  const arquivo = event.target.files?.[0];
-                  if (arquivo) void carregarArquivo(arquivo);
-                  event.target.value = "";
-                }}
-              />
-              <S.ActionButton type="button" onClick={() => fileInputRef.current?.click()}>
-                Abrir arquivo
-              </S.ActionButton>
-              <S.Pill>{resumoValidacao.totalBytesConteudo} bytes conteudo</S.Pill>
+              <S.LegendItem>
+                <S.LegendShortcut>X</S.LegendShortcut> Alfanumérico
+              </S.LegendItem>
+              <S.LegendItem>
+                <S.LegendShortcut>N</S.LegendShortcut> Numérico
+              </S.LegendItem>
+              <S.LegendItem>
+                <S.LegendShortcut>B</S.LegendShortcut> Branco
+              </S.LegendItem>
+              <S.Pill>{resumoValidacao.totalBytesConteudo} bytes de conteúdo</S.Pill>
               <S.Pill>{campoSelecionado?.campo.label ?? "Nenhum campo ativo"}</S.Pill>
             </S.Metrics>
           </S.ToolbarMain>
@@ -98,6 +113,7 @@ const VisualizerPage = memo(function VisualizerPage({
               {overlayContent}
             </S.CnabInputOverlay>
             <S.CnabInput
+              ref={inputRef}
               rows={7}
               wrap="off"
               spellCheck={false}
@@ -109,7 +125,7 @@ const VisualizerPage = memo(function VisualizerPage({
           </S.CnabInputEditor>
           <S.LineBreakColumn aria-hidden="true">
             <S.LineBreakRows>
-              <S.LineBreakMarkerTrack $scrollTop={inputScrollTop}>
+              <S.LineBreakMarkerTrack ref={lineBreakTrackRef} $scrollTop={inputScrollTop}>
                 {registrosBytes.length > 0 ? (
                   registrosBytes.map((registro, index) => (
                     <S.LineBreakMarkerRow key={`${index}-${registro.quebra}`}>
@@ -147,23 +163,11 @@ const VisualizerPage = memo(function VisualizerPage({
             )}
             {origemBytes === "paste" && texto && (
               <S.ValidationItem $tone="info">
-                Entrada manual validada pelos bytes UTF-8 gerados no navegador. Para validar o arquivo bruto, use Abrir arquivo.
+                Entrada manual validada pelos bytes UTF-8 gerados no navegador. Para validar o arquivo bruto, use Abrir arquivo no topo.
               </S.ValidationItem>
             )}
           </S.ValidationSummary>
         )}
-
-        <S.Legend>
-          <S.LegendItem>
-            <S.LegendShortcut>X</S.LegendShortcut> Alfanumerico
-          </S.LegendItem>
-          <S.LegendItem>
-            <S.LegendShortcut>N</S.LegendShortcut> Numerico
-          </S.LegendItem>
-          <S.LegendItem>
-            <S.LegendShortcut>B</S.LegendShortcut> Branco
-          </S.LegendItem>
-        </S.Legend>
       </S.EditorPanel>
 
       {detailsPanel}

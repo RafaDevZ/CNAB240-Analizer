@@ -12,68 +12,94 @@ function toneColor(tone: Tone) {
   return "#64748b";
 }
 
-export const LegendBar = styled.div`
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-`;
-
-export const LegendChip = styled.span<{ $tone: Tone }>`
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid ${({ $tone }) => toneColor($tone)};
-  border-radius: 999px;
-  background: ${({ $tone }) => `${toneColor($tone)}22`};
-  color: var(--text-strong);
-  font-size: var(--font-xs);
-  font-weight: 800;
-`;
-
 export const MapSection = styled.section`
+  flex: 1 1 auto;
   min-height: 0;
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
-  overflow: auto;
+  overflow: hidden;
 `;
 
-export const MapGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
-  gap: 8px;
+export const TreemapCanvas = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.28);
 `;
 
-export const MapCell = styled.div<{ $tone: Tone }>`
+export const TreemapBlock = styled.article<{
+  $tone: Tone;
+  $x: number;
+  $y: number;
+  $width: number;
+  $height: number;
+}>`
+  position: absolute;
+  left: ${({ $x }) => $x}%;
+  top: ${({ $y }) => $y}%;
+  width: ${({ $width }) => $width}%;
+  height: ${({ $height }) => $height}%;
   min-width: 0;
-  min-height: 46px;
+  min-height: 0;
   display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 2px;
-  padding: 6px;
+  grid-template-rows: auto auto 1fr;
+  gap: 6px;
+  padding: clamp(8px, 1.2vw, 14px);
+  overflow: hidden;
   border: 1px solid ${({ $tone }) => toneColor($tone)};
-  border-radius: 6px;
-  background: ${({ $tone }) => `${toneColor($tone)}1f`};
+  border-radius: 8px;
+  background: linear-gradient(135deg, ${({ $tone }) => `${toneColor($tone)}34`}, ${({ $tone }) => `${toneColor($tone)}14`});
   color: var(--text-strong);
+  box-shadow: inset 0 0 0 4px var(--surface);
 `;
 
-export const MapLine = styled.span`
-  font-family: var(--mono);
-  font-size: var(--font-xs);
-  font-weight: 800;
+export const BlockLabel = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-sm);
+  font-weight: 900;
 `;
 
-export const MapType = styled.span`
+export const BlockMeta = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-size: var(--font-xs);
+  font-weight: 700;
+`;
+
+export const BlockStats = styled.div`
+  align-self: end;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+
+  strong {
+    font-family: var(--mono);
+    font-size: var(--font-lg);
+    line-height: 1;
+  }
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: var(--font-xs);
+    font-weight: 800;
+  }
 `;

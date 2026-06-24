@@ -9,16 +9,29 @@ function normalizarTipo(tipo?: string) {
     .toLowerCase();
 }
 
+function tipoEhAlfanumerico(tipo: string) {
+  return tipo === "x" || /(^|[^a-z])alfanumerico([^a-z]|$)/.test(tipo) || /(^|[^a-z])alfanumeric([^a-z]|$)/.test(tipo);
+}
+
+function tipoEhNumerico(tipo: string) {
+  if (tipoEhAlfanumerico(tipo)) return false;
+  return tipo === "n" || /(^|[^a-z])numerico([^a-z]|$)/.test(tipo) || /(^|[^a-z])numeric([^a-z]|$)/.test(tipo);
+}
+
+function tipoEhBranco(tipo: string) {
+  return tipo.includes("branco") || tipo.includes("em branco");
+}
+
 function ajustarValor(campo: Campo, valor: string) {
   const tamanho = campo.fim - campo.inicio + 1;
   const tipo = normalizarTipo(campo.tipo);
   const cortado = valor.slice(0, tamanho);
 
-  if (tipo.includes("numeric") || tipo === "n") {
+  if (tipoEhNumerico(tipo)) {
     return cortado.replace(/\D/g, "").padStart(tamanho, "0").slice(-tamanho);
   }
 
-  if (tipo.includes("branco")) {
+  if (tipoEhBranco(tipo)) {
     return " ".repeat(tamanho);
   }
 
@@ -61,7 +74,9 @@ const LineEditorPage = memo(function LineEditorPage() {
       })
     );
 
-    setValores(nextValues);
+    const animationFrame = requestAnimationFrame(() => setValores(nextValues));
+
+    return () => cancelAnimationFrame(animationFrame);
   }, [campos, linha]);
 
   const linhaPreview = useMemo(() => montarLinha(linha, campos, valores), [campos, linha, valores]);

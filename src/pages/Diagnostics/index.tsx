@@ -90,7 +90,7 @@ const DiagnosticsPage = memo(function DiagnosticsPage() {
   const errorCount = diagnostics.filter((item) => item.tone === "error").length;
   const warningCount = diagnostics.filter((item) => item.tone === "warning").length;
   const overallTone: DiagnosticTone = errorCount > 0 ? "error" : warningCount > 0 ? "warning" : linhas.length > 0 ? "ok" : "neutral";
-  const overallText = linhas.length === 0 ? "Sem arquivo" : errorCount > 0 ? `${errorCount} erros` : warningCount > 0 ? `${warningCount} avisos` : "Saudável";
+  const overallText = linhas.length === 0 ? "Sem arquivo" : errorCount > 0 ? `${errorCount} erros` : warningCount > 0 ? `${warningCount} avisos` : "ok";
 
   return (
     <S.PageShell>
@@ -112,7 +112,7 @@ const DiagnosticsPage = memo(function DiagnosticsPage() {
               <S.SummaryMetricValue>{resumoArquivo.totalLinhas}</S.SummaryMetricValue>
             </S.SummaryMetric>
             <S.SummaryMetric>
-              <S.SummaryMetricLabel>Bytes conteúdo</S.SummaryMetricLabel>
+              <S.SummaryMetricLabel>Bytes com quebra</S.SummaryMetricLabel>
               <S.SummaryMetricValue>{resumoArquivo.totalBytesConteudo}</S.SummaryMetricValue>
             </S.SummaryMetric>
             <S.SummaryMetric>

@@ -65,7 +65,7 @@ const SummaryPage = memo(function SummaryPage({
         <SummaryMetric label="Layout selecionado" value={resumo.bancoLayout} />
         <SummaryMetric label="Codigo do banco" value={resumo.codigoBanco} />
         <SummaryMetric label="Linhas" value={resumo.totalLinhas} />
-        <SummaryMetric label="Bytes de conteudo" value={resumo.totalBytesConteudo} />
+        <SummaryMetric label="Bytes com quebra" value={resumo.totalBytesConteudo} />
         <SummaryMetric label="Linhas invalidas" value={resumo.linhasInvalidas.length} />
       </S.SummaryGrid>
 

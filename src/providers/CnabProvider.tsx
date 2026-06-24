@@ -45,12 +45,12 @@ export function CnabProvider({ children }: { children: ReactNode }) {
     return {
       totalBytesConteudo,
       bytesInvalidos: Boolean(tamanhoInvalido),
-      resumoBytes: registrosBytes.length === 0 ? 0 : tamanhoInvalido?.tamanhoConteudo ?? CNAB_RECORD_BYTES,
+      resumoBytes: registrosBytes.length === 0 ? 0 : tamanhoInvalido?.tamanhoConteudo ?? registrosBytes[0]?.tamanhoConteudo ?? CNAB_RECORD_BYTES,
       linhasMultibyte,
       linhasComCr,
       detalheTamanhoInvalido: tamanhoInvalido
         ? `Linha ${registrosBytes.indexOf(tamanhoInvalido) + 1}: ${tamanhoInvalido.tamanhoConteudo} bytes de conteudo, ${tamanhoInvalido.tamanhoBruto} bytes com ${tamanhoInvalido.quebra}`
-        : "240 bytes por registro",
+        : `240 bytes de conteúdo por registro, ${registrosBytes[0]?.tamanhoBruto ?? CNAB_RECORD_BYTES} bytes com ${registrosBytes[0]?.quebra ?? "EOF"}`,
     };
   }, [registrosBytes]);
   const resumoArquivo = useMemo<ResumoArquivo>(() => {

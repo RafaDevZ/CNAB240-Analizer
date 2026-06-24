@@ -28,6 +28,7 @@ export const GlobalStyle = createGlobalStyle`
     --font-lg: 17px;
     --control-height: 34px;
     --row-height: 38px;
+    --cnab-line-height: 20px;
     font-family: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--text);
     background: var(--bg);
@@ -132,7 +133,7 @@ export const AppBody = styled.div`
 
   @media (max-width: 860px) {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
 `;
 
@@ -337,9 +338,6 @@ export const TitlebarStatus = styled.div`
   font-size: var(--font-sm);
   white-space: nowrap;
 
-  @media (max-width: 980px) {
-    display: none;
-  }
 `;
 
 export const Pill = styled.span<{ $invalid?: boolean; $valid?: boolean }>`
@@ -369,7 +367,7 @@ export const Workspace = styled.main`
   padding: 14px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     "editor details"
     "viewer details";
@@ -577,9 +575,12 @@ export const EditorPanel = styled(PanelBase)`
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const Toolbar = styled.div`
+  min-height: 64px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 76px;
   align-items: stretch;
@@ -759,10 +760,12 @@ export const ModalActions = styled.div`
 `;
 
 export const CnabInputShell = styled.div`
-  --cnab-input-line-height: 20px;
+  --cnab-input-line-height: var(--cnab-line-height);
   display: grid;
   grid-template-columns: minmax(0, 1fr) 76px;
   background: var(--input);
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 
   @media (max-width: 680px) {
@@ -773,19 +776,21 @@ export const CnabInputShell = styled.div`
 export const CnabInputEditor = styled.div`
   position: relative;
   min-width: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 `;
 
-const InputLayerBase = styled.pre`
+const InputLayerBase = styled.div`
   width: 100%;
-  min-height: 168px;
+  height: 100%;
   margin: 0;
-  padding: 14px;
+  padding: 0;
   border: 0;
   border-bottom: 1px solid var(--border);
   font-family: var(--mono);
   font-size: var(--font-md);
   line-height: var(--cnab-input-line-height);
-  white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
   tab-size: 2;
@@ -803,10 +808,10 @@ export const CnabInput = styled.textarea`
   position: relative;
   z-index: 1;
   width: 100%;
-  min-height: 168px;
+  height: 100%;
   display: block;
   margin: 0;
-  padding: 14px;
+  padding: 0 14px 0 72px;
   resize: none;
   border: 0;
   border-bottom: 1px solid var(--border);
@@ -818,7 +823,6 @@ export const CnabInput = styled.textarea`
   font-family: var(--mono);
   font-size: var(--font-md);
   line-height: var(--cnab-input-line-height);
-  white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
   tab-size: 2;
@@ -834,34 +838,38 @@ export const CnabInput = styled.textarea`
   }
 `;
 
+export const CnabInputLine = styled.div<{ $invalid?: boolean }>`
+  display: grid;
+  grid-template-columns: 58px max-content;
+  min-width: max-content;
+  height: var(--cnab-line-height);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--font-md);
+  line-height: var(--cnab-line-height);
+  background: ${({ $invalid }) => ($invalid ? "rgba(239, 68, 68, 0.14)" : "transparent")};
+`;
+
+export const CnabInputCode = styled.code`
+  padding: 0 14px;
+  white-space: pre;
+  font: inherit;
+`;
+
+
 export const CnabInputHighlight = styled.span<{ $bgColor: string; $textColor: string }>`
   border-radius: 2px;
   background-color: ${({ $bgColor }) => $bgColor};
   color: ${({ $textColor }) => $textColor};
-  font-weight: 400;
+  font-weight: 700;
   outline: 1px solid rgba(255, 255, 255, 0.18);
 `;
-
-export const InvalidInputLine = styled.span`
-  display: inline-block;
-  min-width: 100%;
-  background: rgba(239, 68, 68, 0.2);
-  box-shadow: inset 3px 0 0 #ef4444;
-`;
-
-export const OverflowInputText = styled.span`
-  border-radius: 2px;
-  background: #ef233c;
-  color: #ffffff;
-  font-weight: 400;
-`;
-
 export const SpaceDot = styled.span`
   color: rgba(156, 163, 175, 0.3);
 `;
 
 export const LineBreakColumn = styled.div`
-  min-height: 168px;
+  height: 100%;
   border-bottom: 1px solid var(--border);
   border-left: 1px solid var(--border);
   background: #11141a;
@@ -884,7 +892,6 @@ export const LineBreakHeader = styled.div`
 export const LineBreakRows = styled.div`
   position: relative;
   height: 100%;
-  padding-top: 14px;
   overflow: hidden;
 `;
 
@@ -963,6 +970,14 @@ export const TooltipBox = styled(motion.div)`
   font-size: var(--font-sm);
   line-height: 1.45;
   transform-origin: top center;
+`;
+
+export const TooltipText = styled.div`
+  color: var(--text);
+  font-size: var(--font-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 `;
 
 export const TooltipTitle = styled.div`
@@ -1127,6 +1142,7 @@ export const ViewerPanel = styled(PanelBase)`
 `;
 
 export const PanelHeader = styled.div`
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1199,11 +1215,11 @@ export const CnabLine = styled.div<{ $top: number }>`
   display: grid;
   grid-template-columns: 58px max-content;
   min-width: max-content;
-  height: 22px;
+  height: var(--cnab-line-height);
   color: var(--text);
   font-family: var(--mono);
   font-size: var(--font-md);
-  line-height: 22px;
+  line-height: var(--cnab-line-height);
 
   &:hover {
     background: rgba(255, 255, 255, 0.045);
@@ -1220,11 +1236,15 @@ export const LineNumber = styled.span`
 
 export const CnabCode = styled.code`
   padding: 0 14px;
-  white-space: pre;
   font: inherit;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
 `;
 
-export const PlainText = styled.span``;
+export const PlainText = styled.span`
+  white-space: pre;
+`;
 
 export const CnabField = styled.span<{ $bgColor: string; $textColor: string }>`
   border-radius: 2px;
@@ -1232,6 +1252,7 @@ export const CnabField = styled.span<{ $bgColor: string; $textColor: string }>`
   color: ${({ $textColor }) => $textColor};
   cursor: pointer;
   font-weight: 700;
+  white-space: pre;
   outline: 1px solid rgba(255, 255, 255, 0.1);
   transition: filter 120ms ease, outline-color 120ms ease;
 

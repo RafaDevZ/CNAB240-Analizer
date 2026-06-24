@@ -19,6 +19,15 @@ function normalizarTipo(tipo?: string) {
     .toLowerCase();
 }
 
+function tipoEhAlfanumerico(tipo: string) {
+  return tipo === "x" || /(^|[^a-z])alfanumerico([^a-z]|$)/.test(tipo) || /(^|[^a-z])alfanumeric([^a-z]|$)/.test(tipo);
+}
+
+function tipoEhNumerico(tipo: string) {
+  if (tipoEhAlfanumerico(tipo)) return false;
+  return tipo === "n" || /(^|[^a-z])numerico([^a-z]|$)/.test(tipo) || /(^|[^a-z])numeric([^a-z]|$)/.test(tipo);
+}
+
 function valueForField(campo: Campo, tipoRegistro: string, segmento: string, banco: Banco) {
   const size = campo.fim - campo.inicio + 1;
   const label = campo.label.toLowerCase();
@@ -28,6 +37,7 @@ function valueForField(campo: Campo, tipoRegistro: string, segmento: string, ban
     if (banco === "CAIXASIGCB") return "104";
     if (banco === "SICREDI") return "748";
     if (banco === "ITAU") return "341";
+    if (banco === "ITAU_BBA") return "184";
   }
 
   if (campo.inicio === 8 && campo.fim === 8) return tipoRegistro;
@@ -41,7 +51,7 @@ function valueForField(campo: Campo, tipoRegistro: string, segmento: string, ban
   if (label.includes("nome")) return "EXEMPLO".padEnd(size, " ").slice(0, size);
   if (label.includes("banco") && tipo.includes("literal")) return bancos.find((item) => item.value === banco)?.label.toUpperCase().slice(0, size).padEnd(size, " ") ?? "".padEnd(size, " ");
   if (tipo.includes("branco") || label.includes("cnab") || label.includes("filler")) return " ".repeat(size);
-  if (tipo.includes("numeric") || tipo.includes("numerico")) return "0".repeat(size);
+  if (tipoEhNumerico(tipo)) return "0".repeat(size);
 
   return " ".repeat(size);
 }

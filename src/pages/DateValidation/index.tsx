@@ -7,7 +7,7 @@ type Status = "ok" | "erro" | "aviso";
 function parseDate(value: string) {
   const normalized = value.trim();
 
-  if (/^0+$/.test(normalized)) return { status: "aviso" as Status, detail: "Data zerada" };
+  if (/^0+$/.test(normalized)) return { status: "ok" as Status, detail: "Data zerada / não informada" };
   if (!/^\d{8}$/.test(normalized)) return { status: "erro" as Status, detail: "Formato diferente de DDMMAAAA" };
 
   const day = Number(normalized.slice(0, 2));
@@ -50,7 +50,7 @@ const DateValidationPage = memo(function DateValidationPage() {
 
   const erros = rows.filter((row) => row.status === "erro").length;
   const avisos = rows.filter((row) => row.status === "aviso").length;
-  const statusText = erros ? `${erros} erros` : avisos ? `${avisos} avisos` : "Datas ok";
+  const statusText = erros ? `${erros} erros` : avisos ? `${avisos} avisos` : "ok";
 
   return (
     <S.PageShell>

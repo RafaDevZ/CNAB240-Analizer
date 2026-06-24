@@ -1,13 +1,12 @@
-import Tippy from "@tippyjs/react/headless";
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type JSX, type UIEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type JSX, type UIEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { NavLink } from "react-router-dom";
+import AppTooltip from "./components/AppTooltip";
 import {
   CNAB_RECORD_BYTES,
   getBankBrand,
   resolverLayout,
   resolverSegmento,
-  textEncoder,
   useCnab,
   type Banco,
   type Campo,
@@ -18,10 +17,7 @@ import { CnabProvider } from "./providers/CnabProvider";
 import AppRoutes from "./routes";
 import * as S from "./styles";
 
-const TOOLTIP_SHOW_DELAY = 160;
-const TOOLTIP_HIDE_DELAY = 90;
-const TOOLTIP_ANIMATION_MS = 240;
-const VIRTUAL_LINE_HEIGHT = 22;
+const VIRTUAL_LINE_HEIGHT = 20;
 const VIRTUAL_OVERSCAN = 8;
 
 export const InfoBox = memo(function InfoBox({ selecao }: { selecao: CampoSelecionado | null }) {
@@ -73,13 +69,9 @@ export const InfoBox = memo(function InfoBox({ selecao }: { selecao: CampoSeleci
   );
 });
 
-const CampoTooltip = memo(function CampoTooltip({ campo, segmento, open }: { campo: Campo; segmento: string; open: boolean }) {
+const CampoTooltip = memo(function CampoTooltip({ campo, segmento }: { campo: Campo; segmento: string }) {
   return (
-    <S.TooltipBox
-      initial={false}
-      animate={open ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -8, scale: 0.96 }}
-      transition={{ duration: TOOLTIP_ANIMATION_MS / 1000, ease: "easeOut" }}
-    >
+    <>
       <S.TooltipTitle>{campo.label}</S.TooltipTitle>
       <S.TooltipGrid>
         <S.TooltipRow>
@@ -109,7 +101,7 @@ const CampoTooltip = memo(function CampoTooltip({ campo, segmento, open }: { cam
           </S.TooltipRow>
         )}
       </S.TooltipGrid>
-    </S.TooltipBox>
+    </>
   );
 });
 
@@ -126,56 +118,16 @@ const CampoComTooltip = memo(function CampoComTooltip({
   texto: string;
   onSelect: (selecao: CampoSelecionado) => void;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
-  const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearTimers = () => {
-    if (showTimer.current) clearTimeout(showTimer.current);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-  };
-
-  const showTooltip = () => {
-    clearTimers();
-    showTimer.current = setTimeout(() => {
-      setMounted(true);
-      requestAnimationFrame(() => setOpen(true));
-    }, TOOLTIP_SHOW_DELAY);
-  };
-
-  const hideTooltip = () => {
-    clearTimers();
-    hideTimer.current = setTimeout(() => {
-      setOpen(false);
-      hideTimer.current = setTimeout(() => setMounted(false), TOOLTIP_ANIMATION_MS);
-    }, TOOLTIP_HIDE_DELAY);
-  };
-
   return (
-    <Tippy
-      visible={mounted}
-      placement="bottom"
-      offset={[0, 8]}
-      duration={0}
-      render={(attrs) => (
-        <div tabIndex={-1} {...attrs}>
-          <CampoTooltip campo={campo} segmento={segmento} open={open} />
-        </div>
-      )}
-    >
+    <AppTooltip content={<CampoTooltip campo={campo} segmento={segmento} />}>
       <S.CnabField
         onClick={() => onSelect({ campo, segmento, linhaIndex })}
-        onMouseEnter={showTooltip}
-        onMouseLeave={hideTooltip}
-        onFocus={showTooltip}
-        onBlur={hideTooltip}
         $bgColor={campo.bgColor}
         $textColor={campo.textColor}
       >
         {texto}
       </S.CnabField>
-    </Tippy>
+    </AppTooltip>
   );
 });
 
@@ -273,12 +225,17 @@ export const VirtualizedCnabOutput = memo(function VirtualizedCnabOutput({
   linhas,
   banco,
   onSelect,
+  syncedScrollTop,
+  onSyncedScroll,
 }: {
   linhas: string[];
   banco: Banco;
   onSelect: (selecao: CampoSelecionado) => void;
+  syncedScrollTop: number;
+  onSyncedScroll: (scrollTop: number) => void;
 }) {
   const { ref, height } = useElementHeight<HTMLDivElement>();
+  const syncingFromStateRef = useRef(false);
   const [scrollTop, setScrollTop] = useState(0);
   const totalHeight = linhas.length * VIRTUAL_LINE_HEIGHT;
   const startIndex = Math.max(0, Math.floor(scrollTop / VIRTUAL_LINE_HEIGHT) - VIRTUAL_OVERSCAN);
@@ -288,9 +245,24 @@ export const VirtualizedCnabOutput = memo(function VirtualizedCnabOutput({
   );
   const linhasVisiveis = linhas.slice(startIndex, endIndex);
 
+  useEffect(() => {
+    const targetScrollTop = syncedScrollTop;
+    if (!ref.current || Math.abs(ref.current.scrollTop - targetScrollTop) <= 1) return;
+    syncingFromStateRef.current = true;
+    ref.current.scrollTop = targetScrollTop;
+    const animationFrame = requestAnimationFrame(() => {
+      setScrollTop(targetScrollTop);
+      syncingFromStateRef.current = false;
+    });
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [ref, syncedScrollTop]);
+
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
-    setScrollTop(event.currentTarget.scrollTop);
-  }, []);
+    const nextScrollTop = event.currentTarget.scrollTop;
+    setScrollTop(nextScrollTop);
+    if (!syncingFromStateRef.current) onSyncedScroll(nextScrollTop);
+  }, [onSyncedScroll]);
 
   if (linhas.length === 0) {
     return (
@@ -322,23 +294,11 @@ export const VirtualizedCnabOutput = memo(function VirtualizedCnabOutput({
   );
 });
 
-function obterIndiceVisualPorByte(linha: string, byteLimite: number) {
-  let bytes = 0;
-
-  for (let index = 0; index < linha.length;) {
-    const codePoint = linha.codePointAt(index);
-    const char = codePoint === undefined ? linha[index] : String.fromCodePoint(codePoint);
-    const charBytes = textEncoder.encode(char).length;
-
-    if (bytes + charBytes > byteLimite) return index;
-    bytes += charBytes;
-    index += char.length;
-  }
-
-  return linha.length;
-}
-
-function renderInputOverlay(linhasInput: string[], registrosBytes: RegistroBytes[], selecao: CampoSelecionado | null) {
+function renderInputOverlay(
+  linhasInput: string[],
+  registrosBytes: RegistroBytes[],
+  selecao: CampoSelecionado | null
+) {
   if (linhasInput.length === 0) return null;
 
   const renderVisibleSpaces = (text: string, keyPrefix: string) => {
@@ -355,69 +315,40 @@ function renderInputOverlay(linhasInput: string[], registrosBytes: RegistroBytes
     });
   };
 
-  const renderLineText = (linha: string, idx: number) => {
-    const tamanhoBytes = registrosBytes[idx]?.tamanhoConteudo ?? textEncoder.encode(linha).length;
-    const overflowStart = obterIndiceVisualPorByte(linha, CNAB_RECORD_BYTES);
-    const hasOverflow = tamanhoBytes > CNAB_RECORD_BYTES;
+  const renderLine = (linha: string, idx: number) => {
     const selectedCampo = selecao?.linhaIndex === idx ? selecao.campo : null;
-    const selectedStart = selectedCampo ? selectedCampo.inicio - 1 : -1;
-    const selectedEnd = selectedCampo ? selectedCampo.fim : -1;
 
-    const breakpoints = new Set([0, linha.length, overflowStart]);
+    if (!selectedCampo) return renderVisibleSpaces(linha, String(idx));
 
-    if (selectedCampo) {
-      breakpoints.add(Math.max(0, Math.min(linha.length, selectedStart)));
-      breakpoints.add(Math.max(0, Math.min(linha.length, selectedEnd)));
-    }
+    const start = Math.max(0, Math.min(linha.length, selectedCampo.inicio - 1));
+    const end = Math.max(start, Math.min(linha.length, selectedCampo.fim));
+    const before = linha.slice(0, start);
+    const selected = linha.slice(start, end);
+    const after = linha.slice(end);
 
-    const sortedBreakpoints = [...breakpoints].sort((a, b) => a - b);
-
-    return sortedBreakpoints.slice(0, -1).map((start, index) => {
-      const end = sortedBreakpoints[index + 1];
-      const text = linha.slice(start, end);
-      const selected = selectedCampo && start >= selectedStart && end <= selectedEnd;
-      const overflow = hasOverflow && start >= overflowStart;
-      const key = `${idx}-${start}-${end}`;
-
-      if (selected) {
-        return (
-          <S.CnabInputHighlight
-            key={key}
-            $bgColor={selectedCampo.bgColor}
-            $textColor={selectedCampo.textColor}
-          >
-            {renderVisibleSpaces(text, key)}
-          </S.CnabInputHighlight>
-        );
-      }
-
-      if (overflow) {
-        return <S.OverflowInputText key={key}>{renderVisibleSpaces(text, key)}</S.OverflowInputText>;
-      }
-
-      return <S.PlainText key={key}>{renderVisibleSpaces(text, key)}</S.PlainText>;
-    });
+    return (
+      <>
+        {renderVisibleSpaces(before, `${idx}-before`)}
+        <S.CnabInputHighlight $bgColor={selectedCampo.bgColor} $textColor={selectedCampo.textColor}>
+          {renderVisibleSpaces(selected, `${idx}-selected`)}
+        </S.CnabInputHighlight>
+        {renderVisibleSpaces(after, `${idx}-after`)}
+      </>
+    );
   };
 
   return linhasInput.map((linha, idx) => {
     const registro = registrosBytes[idx];
     const invalidLine = registro?.tamanhoConteudo !== CNAB_RECORD_BYTES;
-    const lineBreak = idx < linhasInput.length - 1 ? "\n" : "";
-    const content = (
-      <S.PlainText>
-        {renderLineText(linha, idx)}
-      </S.PlainText>
-    );
 
     return (
-      <Fragment key={idx}>
-        {invalidLine ? <S.InvalidInputLine>{content}</S.InvalidInputLine> : content}
-        {lineBreak}
-      </Fragment>
+      <S.CnabInputLine key={idx} $invalid={invalidLine}>
+        <S.LineNumber>{String(idx + 1).padStart(3, "0")}</S.LineNumber>
+        <S.CnabInputCode>{renderLine(linha, idx)}</S.CnabInputCode>
+      </S.CnabInputLine>
     );
   });
 }
-
 /**
  * COMPONENTE PRINCIPAL
  */
@@ -426,7 +357,6 @@ function CnabShell() {
     banco,
     bancos,
     campoSelecionado,
-    contentRevision,
     hashArquivo,
     layoutDetection,
     linhas,
@@ -441,7 +371,7 @@ function CnabShell() {
     selecionarCampo,
     setBanco,
   } = useCnab();
-  const overlayRef = useRef<HTMLPreElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [inputScrollTop, setInputScrollTop] = useState(0);
   const [dismissedLayoutSuggestion, setDismissedLayoutSuggestion] = useState("");
@@ -453,7 +383,7 @@ function CnabShell() {
   const currentBankBrand = getBankBrand(banco);
   const suggestedBankBrand = suggestedLayout ? getBankBrand(suggestedLayout.banco) : null;
   const layoutSuggestionKey = suggestedLayout
-    ? `${contentRevision}-${suggestedLayout.banco}-${suggestedLayout.score}`
+    ? `${suggestedLayout.banco}`
     : "";
   const showLayoutSuggestion =
     registrosBytes.length > 0 &&
@@ -498,6 +428,18 @@ function CnabShell() {
           </S.TitleLine>
         </S.TitlebarCopy>
         <S.TitlebarStatus>
+          <S.HiddenFileInput
+            ref={fileInputRef}
+            type="file"
+            onChange={(event) => {
+              const arquivo = event.target.files?.[0];
+              if (arquivo) void carregarArquivo(arquivo);
+              event.target.value = "";
+            }}
+          />
+          <S.ActionButton type="button" onClick={() => fileInputRef.current?.click()}>
+            Abrir arquivo
+          </S.ActionButton>
           <S.Pill>{linhas.length} linhas</S.Pill>
           <S.Pill $invalid={linhas.length > 0 && resumoValidacao.bytesInvalidos} $valid={linhas.length > 0 && !resumoValidacao.bytesInvalidos}>
             {resumoValidacao.resumoBytes} bytes
@@ -575,6 +517,9 @@ function CnabShell() {
 
             <S.SidebarGroup>
               <S.SidebarGroupTitle>Exportação</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/cnab-export">
+                CNAB bancário
+              </S.SidebarLink>
               <S.SidebarLink as={NavLink} to="/csv-export">
                 CSV
               </S.SidebarLink>
@@ -591,6 +536,9 @@ function CnabShell() {
               <S.SidebarLink as={NavLink} to="/line-editor">
                 Editor assistido
               </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/sql-cnab-editor">
+                Editor SQL CNAB
+              </S.SidebarLink>
               <S.SidebarLink as={NavLink} to="/minimal-generator">
                 Gerador mínimo
               </S.SidebarLink>
@@ -603,7 +551,6 @@ function CnabShell() {
           bancos={bancos}
           campoSelecionado={campoSelecionado}
           detailsPanel={<InfoBox selecao={campoSelecionado} />}
-          fileInputRef={fileInputRef}
           hashArquivo={hashArquivo}
           inputScrollTop={inputScrollTop}
           nomeArquivo={nomeArquivo}
@@ -617,8 +564,7 @@ function CnabShell() {
           temBomUtf8={temBomUtf8}
           texto={texto}
           atualizarTexto={atualizarTexto}
-          carregarArquivo={carregarArquivo}
-          viewerOutput={<VirtualizedCnabOutput linhas={linhas} banco={banco} onSelect={selecionarCampo} />}
+          viewerOutput={<VirtualizedCnabOutput linhas={linhas} banco={banco} onSelect={selecionarCampo} syncedScrollTop={inputScrollTop} onSyncedScroll={setInputScrollTop} />}
         />
       </S.AppBody>
       <AnimatePresence>

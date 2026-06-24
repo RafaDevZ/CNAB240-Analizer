@@ -115,7 +115,7 @@ const SequenceValidationPage = memo(function SequenceValidationPage() {
           <S.PageTitle>{resumoArquivo.nome}</S.PageTitle>
         </S.PageTitleGroup>
         <S.ValidationStatus $tone={erros > 0 ? "error" : avisos > 0 ? "warning" : "ok"}>
-          {erros > 0 ? `${erros} erros` : avisos > 0 ? `${avisos} avisos` : "Sequência ok"}
+          {erros > 0 ? `${erros} erros` : avisos > 0 ? `${avisos} avisos` : "ok"}
         </S.ValidationStatus>
       </S.PageHeader>
 

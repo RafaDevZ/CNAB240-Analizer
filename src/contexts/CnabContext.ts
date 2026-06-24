@@ -5,6 +5,7 @@ import sicrediLogo from "../assets/sicredi.png";
 import caixasigcb from "../layouts/caixasigcb.json";
 import sicredi from "../layouts/sicredi.json";
 import itau from "../layouts/itau.json";
+import itaubba from "../layouts/itaubba.json";
 
 export type Campo = {
   inicio: number;
@@ -33,7 +34,7 @@ export type RegistroBytes = {
   temMultibyte: boolean;
 };
 
-export type Banco = "CAIXASIGCB" | "SICREDI" | "ITAU" | "BARRAS SICREDI" | "ITAU_NOVO";
+export type Banco = "CAIXASIGCB" | "SICREDI" | "ITAU" | "ITAU_BBA" | "BARRAS SICREDI" | "ITAU_NOVO";
 
 export type BankBrand = {
   banco: Banco;
@@ -108,12 +109,14 @@ const layoutsPorBanco: Partial<Record<Banco, Campo[][]>> = {
   CAIXASIGCB: caixaSigcbLayout,
   SICREDI: sicredi,
   ITAU: itau,
+  ITAU_BBA: itaubba,
 };
 
 export const bancos: Array<{ value: Banco; label: string }> = [
   { value: "CAIXASIGCB", label: "Caixa SIGCB" },
   { value: "SICREDI", label: "Sicredi" },
-  { value: "ITAU", label: "Itau" },
+  { value: "ITAU", label: "Itaú SA" },
+  { value: "ITAU_BBA", label: "Itaú BBA" },
 ];
 
 
@@ -130,7 +133,12 @@ export const bankBrands: Partial<Record<Banco, BankBrand>> = {
   },
   ITAU: {
     banco: "ITAU",
-    nome: "Itau",
+    nome: "Itaú SA",
+    logoUrl: itauLogo,
+  },
+  ITAU_BBA: {
+    banco: "ITAU_BBA",
+    nome: "Itaú BBA",
     logoUrl: itauLogo,
   },
 };
@@ -145,6 +153,7 @@ const bankCodeScores: Partial<Record<Banco, string[]>> = {
   CAIXASIGCB: ["104"],
   SICREDI: ["748"],
   ITAU: ["341"],
+  ITAU_BBA: ["184"],
 };
 
 export function comecaComBomUtf8(bytes: Uint8Array) {

@@ -18,14 +18,34 @@ function normalizarTipo(tipo?: string) {
     .toLowerCase();
 }
 
+function tipoEhAlfanumerico(tipo: string) {
+  return tipo === "x" || /(^|[^a-z])alfanumerico([^a-z]|$)/.test(tipo) || /(^|[^a-z])alfanumeric([^a-z]|$)/.test(tipo);
+}
+
+function tipoEhNumerico(tipo: string) {
+  if (tipoEhAlfanumerico(tipo)) return false;
+  return tipo === "n" || /(^|[^a-z])numerico([^a-z]|$)/.test(tipo) || /(^|[^a-z])numeric([^a-z]|$)/.test(tipo);
+}
+
+function tipoEhBranco(tipo: string) {
+  return tipo.includes("branco") || tipo.includes("em branco");
+}
+
+function temCaractereControle(valor: string) {
+  return [...valor].some((char) => {
+    const code = char.charCodeAt(0);
+    return code === 0x7f || code < 0x20;
+  });
+}
+
 function validarCampo(linha: string, campo: Campo) {
   const valor = linha.slice(campo.inicio - 1, campo.fim);
   const tamanhoEsperado = campo.fim - campo.inicio + 1;
   const tamanhoBytes = textEncoder.encode(valor).length;
   const tipo = normalizarTipo(campo.tipo);
-  const tipoNumerico = tipo.includes("numerico") || tipo.includes("numeric") || tipo === "n";
-  const tipoBranco = tipo.includes("branco") || tipo.includes("em branco");
-  const tipoAlfanumerico = tipo.includes("alfanumerico") || tipo.includes("alfanumeric") || tipo === "x";
+  const tipoNumerico = tipoEhNumerico(tipo);
+  const tipoBranco = tipoEhBranco(tipo);
+  const tipoAlfanumerico = tipoEhAlfanumerico(tipo);
 
   if (valor.length < tamanhoEsperado) {
     return { status: "erro" as const, detalhe: `Campo incompleto: ${valor.length}/${tamanhoEsperado} posições` };
@@ -43,11 +63,11 @@ function validarCampo(linha: string, campo: Campo) {
     return { status: "aviso" as const, detalhe: "Campo numérico possui caractere não numérico" };
   }
 
-  if (tipoAlfanumerico && /[\u0000-\u001f\u007f]/.test(valor)) {
+  if (tipoAlfanumerico && temCaractereControle(valor)) {
     return { status: "aviso" as const, detalhe: "Campo alfanumérico possui caractere de controle" };
   }
 
-  return { status: "ok" as const, detalhe: "Válido" };
+  return { status: "ok" as const, detalhe: "ok" };
 }
 
 const FieldValidationPage = memo(function FieldValidationPage() {
@@ -97,7 +117,7 @@ const FieldValidationPage = memo(function FieldValidationPage() {
           <S.PageTitle>{resumoArquivo.nome}</S.PageTitle>
         </S.PageTitleGroup>
         <S.ValidationStatus $tone={erros.length > 0 ? "error" : avisos.length > 0 ? "warning" : "ok"}>
-          {erros.length > 0 ? `${erros.length} erros` : avisos.length > 0 ? `${avisos.length} avisos` : "Tudo válido"}
+          {erros.length > 0 ? `${erros.length} erros` : avisos.length > 0 ? `${avisos.length} avisos` : "ok"}
         </S.ValidationStatus>
       </S.PageHeader>
 

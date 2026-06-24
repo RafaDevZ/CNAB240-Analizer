@@ -4,6 +4,7 @@ import type { Banco, CampoSelecionado, RegistroBytes, ResumoValidacao } from "..
 import AdvancedFilterPage from "../pages/AdvancedFilter";
 import AmountValidationPage from "../pages/AmountValidation";
 import BatchDashboardPage from "../pages/BatchDashboard";
+import CnabExportPage from "../pages/CnabExport";
 import CsvExportPage from "../pages/CsvExport";
 import DateValidationPage from "../pages/DateValidation";
 import DiagnosticsPage from "../pages/Diagnostics";
@@ -19,6 +20,7 @@ import LineEditorPage from "../pages/LineEditor";
 import MinimalGeneratorPage from "../pages/MinimalGenerator";
 import SearchRecordsPage from "../pages/SearchRecords";
 import SequenceValidationPage from "../pages/SequenceValidation";
+import SqlCnabEditorPage from "../pages/SqlCnabEditor";
 import SummaryPage from "../pages/Summary";
 import TrailerValidationPage from "../pages/TrailerValidation";
 import VisualizerPage from "../pages/Visualizer";
@@ -28,12 +30,11 @@ type AppRoutesProps = {
   bancos: Array<{ value: Banco; label: string }>;
   campoSelecionado: CampoSelecionado | null;
   detailsPanel: ReactNode;
-  fileInputRef: RefObject<HTMLInputElement | null>;
   hashArquivo: string;
   inputScrollTop: number;
   nomeArquivo: string;
   overlayContent: ReactNode;
-  overlayRef: RefObject<HTMLPreElement | null>;
+  overlayRef: RefObject<HTMLDivElement | null>;
   origemBytes: "paste" | "file";
   registrosBytes: RegistroBytes[];
   resumoValidacao: ResumoValidacao;
@@ -42,7 +43,6 @@ type AppRoutesProps = {
   temBomUtf8: boolean;
   texto: string;
   atualizarTexto: (valor: string) => void;
-  carregarArquivo: (arquivo: File) => Promise<void>;
   viewerOutput: ReactNode;
 };
 
@@ -70,7 +70,9 @@ export default function AppRoutes(props: AppRoutesProps) {
       <Route path="/compare" element={<FileComparePage />} />
       <Route path="/sequence-validation" element={<SequenceValidationPage />} />
       <Route path="/csv-export" element={<CsvExportPage />} />
+      <Route path="/cnab-export" element={<CnabExportPage />} />
       <Route path="/minimal-generator" element={<MinimalGeneratorPage />} />
+      <Route path="/sql-cnab-editor" element={<SqlCnabEditorPage />} />
       <Route path="/export-report" element={<ExportReportPage />} />
       <Route path="/layout-detection" element={<LayoutDetectionPage />} />
       <Route path="*" element={<Navigate to="/visualizer" replace />} />

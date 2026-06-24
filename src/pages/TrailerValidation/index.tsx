@@ -26,7 +26,7 @@ function campoNumerico(linha: string, inicio: number, fim: number) {
 
 function statusComparacao(declarado: number | null, real: number) {
   if (declarado === null) return { tone: "error" as const, status: "Invalido" };
-  if (declarado === real) return { tone: "ok" as const, status: "Confere" };
+  if (declarado === real) return { tone: "ok" as const, status: "ok" };
   return { tone: "error" as const, status: "Divergente" };
 }
 
@@ -149,7 +149,7 @@ const TrailerValidationPage = memo(function TrailerValidationPage() {
   }, [linhas]);
 
   const statusTexto = {
-    ok: "Trailers conferem",
+    ok: "ok",
     warning: "Conferir avisos",
     error: "Ha divergencias",
     neutral: "Sem arquivo",
