@@ -22,6 +22,12 @@ export const GlobalStyle = createGlobalStyle`
     --accent-dark: #007acc;
     --focus: rgba(79, 193, 255, 0.22);
     --mono: Consolas, "Courier New", monospace;
+    --font-xs: 11px;
+    --font-sm: 12px;
+    --font-md: 13px;
+    --font-lg: 17px;
+    --control-height: 34px;
+    --row-height: 38px;
     font-family: "Montserrat", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--text);
     background: var(--bg);
@@ -46,6 +52,8 @@ export const GlobalStyle = createGlobalStyle`
     min-height: 100vh;
     margin: 0;
     background: var(--bg);
+    font-size: var(--font-md);
+    line-height: 1.45;
   }
 
   button,
@@ -98,7 +106,7 @@ export const AppShell = styled.div`
 export const Titlebar = styled.header`
   min-height: 72px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 14px 22px;
@@ -106,12 +114,121 @@ export const Titlebar = styled.header`
   background: var(--titlebar);
 
   @media (max-width: 980px) {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
   @media (max-width: 680px) {
+    grid-template-columns: minmax(0, 1fr);
     padding: 12px;
     gap: 12px;
+  }
+`;
+
+export const AppBody = styled.div`
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  overflow: hidden;
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+`;
+
+export const Sidebar = styled.aside`
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border-right: 1px solid var(--border);
+  background: var(--titlebar);
+  overflow: hidden;
+
+  @media (max-width: 860px) {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+`;
+
+export const SidebarTitle = styled.div`
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const SidebarNav = styled.nav`
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
+
+  @media (max-width: 860px) {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    padding-bottom: 2px;
+  }
+`;
+
+export const SidebarGroup = styled.div`
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  @media (max-width: 860px) {
+    min-width: 160px;
+    padding-right: 10px;
+    padding-bottom: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 0;
+  }
+`;
+
+export const SidebarGroupTitle = styled.div`
+  padding: 2px 2px 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+export const SidebarLink = styled.a`
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--input);
+  color: var(--muted);
+  font-size: var(--font-sm);
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--text-strong);
+    border-color: var(--accent);
+  }
+
+  &.active {
+    border-color: rgba(79, 193, 255, 0.65);
+    background: rgba(79, 193, 255, 0.12);
+    color: var(--text-strong);
+  }
+
+  @media (max-width: 860px) {
+    min-width: 140px;
   }
 `;
 
@@ -136,11 +253,29 @@ export const TitlebarCopy = styled.div`
   min-width: 0;
 `;
 
+export const TitleLine = styled.div`
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+export const BankLogo = styled.img`
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  object-fit: contain;
+`;
+
 export const Eyebrow = styled.span`
   display: block;
   margin-bottom: 2px;
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -149,9 +284,48 @@ export const Eyebrow = styled.span`
 export const Title = styled.h1`
   margin: 0;
   color: var(--text-strong);
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 650;
   line-height: 1.25;
+`;
+
+export const PageTabs = styled.nav`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+
+  @media (max-width: 680px) {
+    width: 100%;
+  }
+`;
+
+export const PageTab = styled.button<{ $active?: boolean }>`
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid ${({ $active }) => ($active ? "rgba(79, 193, 255, 0.65)" : "transparent")};
+  border-radius: 6px;
+  background: ${({ $active }) => ($active ? "rgba(79, 193, 255, 0.12)" : "transparent")};
+  color: ${({ $active }) => ($active ? "var(--text-strong)" : "var(--muted)")};
+  cursor: pointer;
+  font-size: var(--font-sm);
+  font-weight: 800;
+
+  &:hover {
+    color: var(--text-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 680px) {
+    flex: 1;
+  }
 `;
 
 export const TitlebarStatus = styled.div`
@@ -160,7 +334,7 @@ export const TitlebarStatus = styled.div`
   justify-content: flex-end;
   gap: 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-sm);
   white-space: nowrap;
 
   @media (max-width: 980px) {
@@ -216,6 +390,181 @@ export const Workspace = styled.main`
   }
 `;
 
+export const PageShell = styled.main`
+  width: min(100%, 1520px);
+  min-height: 0;
+  height: 100%;
+  margin: 0 auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+
+  @media (max-width: 680px) {
+    padding: 10px;
+  }
+`;
+
+export const PageHeader = styled.section`
+  flex: 0 0 auto;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+
+  @media (max-width: 680px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+export const PageTitleGroup = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+`;
+
+export const PageTitle = styled.h2`
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-lg);
+  font-weight: 750;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+`;
+
+export const SummaryGrid = styled.section`
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+
+  @media (max-width: 1180px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SummaryMetric = styled.div`
+  min-width: 0;
+  min-height: 78px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+`;
+
+export const SummaryMetricLabel = styled.div`
+  margin-bottom: 7px;
+  line-height: 1.2;
+  color: var(--muted);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const SummaryMetricValue = styled.div`
+  color: var(--text-strong);
+  font-size: var(--font-lg);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+`;
+
+export const SummaryWideSection = styled.section`
+  flex: 0 0 auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+`;
+
+export const SummarySection = styled.section`
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+`;
+
+export const SummarySectionTitle = styled.div`
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: var(--font-sm);
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const SummaryDetailsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SummaryColumns = styled.div`
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SummaryList = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const SummaryListRow = styled.div`
+  min-height: var(--row-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  font-size: var(--font-md);
+`;
+
+export const SummaryCount = styled.span`
+  min-width: 34px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--text-strong);
+  font-size: var(--font-sm);
+  font-weight: 800;
+  text-align: center;
+`;
+
 const PanelBase = styled.section`
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -261,7 +610,7 @@ export const ControlGroup = styled.label`
   align-items: center;
   gap: 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 600;
 
   @media (max-width: 680px) {
@@ -273,7 +622,7 @@ export const ControlGroup = styled.label`
 
 export const Select = styled.select`
   min-width: 190px;
-  height: 34px;
+  height: var(--control-height);
   padding: 0 34px 0 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -298,7 +647,7 @@ export const Metrics = styled.div`
   justify-content: flex-end;
   gap: 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-sm);
   white-space: nowrap;
 
   @media (max-width: 680px) {
@@ -312,14 +661,19 @@ export const HiddenFileInput = styled.input`
 `;
 
 export const ActionButton = styled.button`
-  height: 30px;
-  padding: 0 10px;
+  min-width: 96px;
+  height: var(--control-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  line-height: 1;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--input);
   color: var(--text);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
 
   &:hover {
@@ -330,6 +684,77 @@ export const ActionButton = styled.button`
   &:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+`;
+
+export const InlineActionButton = styled(ActionButton)`
+  height: 24px;
+  margin-left: 10px;
+  vertical-align: middle;
+`;
+
+export const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(7, 10, 16, 0.58);
+  backdrop-filter: blur(8px);
+`;
+
+export const ModalCard = styled.div`
+  width: min(100%, 460px);
+  padding: 18px;
+  border: 1px solid rgba(79, 193, 255, 0.34);
+  border-radius: 8px;
+  background: rgba(30, 34, 43, 0.92);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+`;
+
+export const ModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+`;
+
+export const ModalLogo = styled(BankLogo)`
+  width: 34px;
+  height: 34px;
+`;
+
+export const ModalEyebrow = styled.div`
+  color: var(--accent);
+  font-size: var(--font-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const ModalTitle = styled.h2`
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--font-lg);
+  font-weight: 800;
+  line-height: 1.25;
+`;
+
+export const ModalText = styled.p`
+  margin: 10px 0 0;
+  color: var(--text);
+  font-size: var(--font-md);
+  line-height: 1.5;
+`;
+
+export const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+
+  @media (max-width: 520px) {
+    flex-direction: column;
   }
 `;
 
@@ -358,7 +783,7 @@ const InputLayerBase = styled.pre`
   border: 0;
   border-bottom: 1px solid var(--border);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: var(--cnab-input-line-height);
   white-space: pre;
   overflow-wrap: normal;
@@ -391,7 +816,7 @@ export const CnabInput = styled.textarea`
   caret-color: var(--text-strong);
   outline: none;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: var(--cnab-input-line-height);
   white-space: pre;
   overflow-wrap: normal;
@@ -493,7 +918,7 @@ export const LineBreakBadge = styled.span`
 export const LineBreakEmpty = styled.span`
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
 `;
 
 export const ValidationSummary = styled.div`
@@ -522,7 +947,7 @@ export const ValidationItem = styled.div<{ $tone: "error" | "warning" | "info" }
     if ($tone === "warning") return "#fde68a";
     return "#bae6fd";
   }};
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.4;
 `;
 
@@ -535,7 +960,7 @@ export const TooltipBox = styled(motion.div)`
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
   color: var(--text);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--font-sm);
   line-height: 1.45;
   transform-origin: top center;
 `;
@@ -574,7 +999,7 @@ export const Legend = styled.div`
   gap: 8px;
   padding: 10px 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-sm);
   background: var(--surface-muted);
 `;
 
@@ -613,7 +1038,9 @@ export const DetailsPanel = styled.aside`
 
 export const PanelTitle = styled.div`
   color: var(--muted);
-  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  font-size: var(--font-sm);
   font-weight: 700;
   text-transform: uppercase;
 `;
@@ -621,7 +1048,7 @@ export const PanelTitle = styled.div`
 export const EmptyDetailsText = styled.p`
   margin: 16px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: 1.5;
 `;
 
@@ -633,7 +1060,7 @@ export const SegmentLabel = styled.div`
   border-radius: 6px;
   color: var(--accent);
   background: rgba(79, 193, 255, 0.08);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
 `;
 
@@ -648,7 +1075,7 @@ export const FieldChip = styled.div<{ $borderColor: string }>`
   color: var(--text-strong);
   background: var(--surface-raised);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   font-weight: 700;
   word-break: break-word;
 `;
@@ -668,6 +1095,7 @@ export const FieldDetails = styled.dl`
 `;
 
 export const FieldDetail = styled.div`
+  min-width: 0;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -677,7 +1105,7 @@ export const FieldDetail = styled.div`
 export const FieldTerm = styled.dt`
   margin-bottom: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 700;
   text-transform: uppercase;
 `;
@@ -685,7 +1113,7 @@ export const FieldTerm = styled.dt`
 export const FieldDescription = styled.dd`
   margin: 0;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: 1.45;
 `;
 
@@ -700,20 +1128,30 @@ export const ViewerPanel = styled(PanelBase)`
 
 export const PanelHeader = styled.div`
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   background: var(--surface-muted);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-sm);
   font-weight: 700;
   text-transform: uppercase;
 
   @media (max-width: 680px) {
     flex-direction: column;
-    font-size: 11px;
+    font-size: var(--font-xs);
   }
+`;
+
+export const PanelBrand = styled.div`
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
 `;
 
 export const FileInfo = styled.div`
@@ -725,7 +1163,7 @@ export const FileInfo = styled.div`
 export const HashText = styled.span`
   color: var(--text);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-xs);
   font-weight: 500;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -747,11 +1185,11 @@ export const VirtualCnabScroller = styled.div<{ $height: number }>`
 
 export const EmptyOutput = styled.div`
   display: grid;
-  min-height: 280px;
+  min-height: 260px;
   place-items: center;
   padding: 24px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-md);
 `;
 
 export const CnabLine = styled.div<{ $top: number }>`
@@ -764,7 +1202,7 @@ export const CnabLine = styled.div<{ $top: number }>`
   height: 22px;
   color: var(--text);
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--font-md);
   line-height: 22px;
 
   &:hover {
@@ -813,11 +1251,11 @@ export const Statusbar = styled.div`
   border-top: 1px solid var(--border);
   background: var(--titlebar);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-sm);
 
   @media (max-width: 680px) {
     align-items: stretch;
     flex-direction: column;
-    font-size: 11px;
+    font-size: var(--font-xs);
   }
 `;

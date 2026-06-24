@@ -1,0 +1,10 @@
+import styled from "styled-components";
+export * from "../../styles";
+export const FilterPanel=styled.section`display:grid;grid-template-columns:190px minmax(240px,1fr);gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);@media(max-width:720px){grid-template-columns:1fr;}`;
+export const SearchInput=styled.input`height:var(--control-height);padding:0 10px;border:1px solid var(--border);border-radius:6px;background:var(--input);color:var(--text);outline:none;&:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--focus);}`;
+export const TableSection=styled.section`min-height:0;padding:14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);overflow:auto;`;
+export const DataTable=styled.div`display:grid;gap:8px;min-width:920px;`;
+export const DataRow=styled.div`min-height:var(--row-height);display:grid;grid-template-columns:70px 70px 190px 80px minmax(420px,1fr);gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,.02);color:var(--text);font-size:var(--font-sm);&>*{min-width:0;}`;
+export const HeaderRow=styled(DataRow)`background:var(--surface-muted);color:var(--muted);font-size:var(--font-xs);font-weight:800;text-transform:uppercase;`;
+export const MonoValue=styled.span`font-family:var(--mono);overflow-wrap:anywhere;`;
+export const LineText=styled(MonoValue)`color:var(--text-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;

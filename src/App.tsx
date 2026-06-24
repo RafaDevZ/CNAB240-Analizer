@@ -1,142 +1,30 @@
-import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type JSX, type UIEvent } from "react";
 import Tippy from "@tippyjs/react/headless";
-import caixasigcb from "./layouts/caixasigcb.json";
-import sicredi from "./layouts/sicredi.json";
-import sicrediRetorno from "./layouts/sicrediRetorno.json";
-import itau from "./layouts/itau.json";
+import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type JSX, type UIEvent } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { NavLink } from "react-router-dom";
+import {
+  CNAB_RECORD_BYTES,
+  getBankBrand,
+  resolverLayout,
+  resolverSegmento,
+  textEncoder,
+  useCnab,
+  type Banco,
+  type Campo,
+  type CampoSelecionado,
+  type RegistroBytes,
+} from "./contexts/CnabContext";
+import { CnabProvider } from "./providers/CnabProvider";
+import AppRoutes from "./routes";
 import * as S from "./styles";
-
-type Campo = {
-  inicio: number;
-  fim: number;
-  label: string;
-  descricao?: string;
-  tipo?: string;
-  bgColor: string;
-  conteudo?: string;
-  textColor: string;
-};
-
-type CampoSelecionado = {
-  campo: Campo;
-  segmento: string;
-  linhaIndex: number;
-};
-
-type QuebraLinha = "CRLF" | "LF" | "CR" | "EOF";
-
-type RegistroBytes = {
-  conteudoBytes: Uint8Array;
-  tamanhoConteudo: number;
-  tamanhoBruto: number;
-  quebra: QuebraLinha;
-  temMultibyte: boolean;
-};
-
-const caixaSigcbLayout: Campo[][] = caixasigcb;
-/**
- * CORES PADRÃO POR SEGMENTO (posição 14)
- */
-
-type Banco = "CAIXASIGCB" | "SICREDI" | "SICREDI - RETORNO" | "ITAU" | "BARRAS SICREDI" | "ITAU_NOVO";
-
-const layoutsPorBanco: Partial<Record<Banco, Campo[][]>> = {
-  CAIXASIGCB: caixaSigcbLayout,
-  SICREDI: sicredi,
-  "SICREDI - RETORNO": sicrediRetorno,
-  ITAU: itau,
-};
-
-const bancos: { value: Banco; label: string }[] = [
-  { value: "CAIXASIGCB", label: "Caixa SIGCB" },
-  { value: "SICREDI", label: "Sicredi" },
-  { value: "SICREDI - RETORNO", label: "Sicredi - Retorno" },
-  { value: "ITAU", label: "Itau" },
-];
 
 const TOOLTIP_SHOW_DELAY = 160;
 const TOOLTIP_HIDE_DELAY = 90;
 const TOOLTIP_ANIMATION_MS = 240;
-const CNAB_RECORD_BYTES = 240;
 const VIRTUAL_LINE_HEIGHT = 22;
 const VIRTUAL_OVERSCAN = 8;
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder("utf-8", { fatal: false });
 
-function comecaComBomUtf8(bytes: Uint8Array) {
-  return bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
-}
-
-function contemByteMultibyte(bytes: Uint8Array) {
-  return bytes.some((byte) => byte > 0x7f);
-}
-
-function analisarRegistrosBytes(bytes: Uint8Array): RegistroBytes[] {
-  const registros: RegistroBytes[] = [];
-  let inicioRegistro = 0;
-  let cursor = 0;
-
-  while (cursor < bytes.length) {
-    const byte = bytes[cursor];
-
-    if (byte !== 0x0d && byte !== 0x0a) {
-      cursor += 1;
-      continue;
-    }
-
-    const conteudoBytes = bytes.slice(inicioRegistro, cursor);
-    let quebra: QuebraLinha = "LF";
-    let tamanhoQuebra = 1;
-
-    if (byte === 0x0d && bytes[cursor + 1] === 0x0a) {
-      quebra = "CRLF";
-      tamanhoQuebra = 2;
-    } else if (byte === 0x0d) {
-      quebra = "CR";
-    }
-
-    registros.push({
-      conteudoBytes,
-      tamanhoConteudo: conteudoBytes.length,
-      tamanhoBruto: conteudoBytes.length + tamanhoQuebra,
-      quebra,
-      temMultibyte: contemByteMultibyte(conteudoBytes),
-    });
-
-    cursor += tamanhoQuebra;
-    inicioRegistro = cursor;
-  }
-
-  if (inicioRegistro < bytes.length) {
-    const conteudoBytes = bytes.slice(inicioRegistro);
-
-    registros.push({
-      conteudoBytes,
-      tamanhoConteudo: conteudoBytes.length,
-      tamanhoBruto: conteudoBytes.length,
-      quebra: "EOF",
-      temMultibyte: contemByteMultibyte(conteudoBytes),
-    });
-  }
-
-  return registros;
-}
-
-function decodificarRegistros(registros: RegistroBytes[]) {
-  return registros.map((registro) => textDecoder.decode(registro.conteudoBytes));
-}
-
-async function calcularHashSha256(bytes: Uint8Array) {
-  if (bytes.length === 0) return "";
-
-  const digest = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes));
-
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-const InfoBox = memo(function InfoBox({ selecao }: { selecao: CampoSelecionado | null }) {
+export const InfoBox = memo(function InfoBox({ selecao }: { selecao: CampoSelecionado | null }) {
   if (!selecao) {
     return (
       <S.DetailsPanel>
@@ -184,52 +72,6 @@ const InfoBox = memo(function InfoBox({ selecao }: { selecao: CampoSelecionado |
     </S.DetailsPanel>
   );
 });
-
-
-function resolverLayout(
-  linha: string,
-  banco: Banco
-): Campo[] | null {
-  const layouts = layoutsPorBanco[banco];
-  if (!layouts || linha.length < 14) return null;
-
-  const tipoRegistro = linha[7];
-  const segmento = linha[13];
-
-  if (tipoRegistro === "0") return layouts[0];
-  if (tipoRegistro === "1") return layouts[1];
-
-  if (tipoRegistro === "3") {
-    if (segmento === "P") return layouts[2];
-    if (segmento === "Q") return layouts[3];
-    if (segmento === "R") return layouts[4];
-  }
-
-  if (tipoRegistro === "5") return layouts[5];
-  if (tipoRegistro === "9") return layouts[6];
-
-  return null;
-}
-
-function resolverSegmento(linha: string, banco: Banco): string {
-  if (banco === "BARRAS SICREDI") return "Linha digitavel / codigo de barras";
-  if (linha.length < 8) return "Registro nao identificado";
-
-  const tipoRegistro = linha[7];
-  const segmento = linha[13];
-
-  if (tipoRegistro === "0") return "Header de arquivo";
-  if (tipoRegistro === "1") return "Header de lote";
-  if (tipoRegistro === "5") return "Trailer de lote";
-  if (tipoRegistro === "9") return "Trailer de arquivo";
-
-  if (tipoRegistro === "3") {
-    if (segmento) return `Segmento ${segmento}`;
-    return "Segmento de detalhe";
-  }
-
-  return "Registro nao identificado";
-}
 
 const CampoTooltip = memo(function CampoTooltip({ campo, segmento, open }: { campo: Campo; segmento: string; open: boolean }) {
   return (
@@ -350,11 +192,7 @@ function renderLinha(
   let layout: Campo[] | null = null;
   const segmento = resolverSegmento(linha, banco);
 
-  if (banco === "BARRAS SICREDI") {
-    layout = layoutsPorBanco["BARRAS SICREDI"]?.[0] ?? null;
-  } else {
-    layout = resolverLayout(linha, banco);
-  }
+  layout = resolverLayout(linha, banco);
 
   if (!layout) return linha;
 
@@ -431,7 +269,7 @@ function useElementHeight<T extends HTMLElement>() {
   return { ref, height };
 }
 
-const VirtualizedCnabOutput = memo(function VirtualizedCnabOutput({
+export const VirtualizedCnabOutput = memo(function VirtualizedCnabOutput({
   linhas,
   banco,
   onSelect,
@@ -583,80 +421,56 @@ function renderInputOverlay(linhasInput: string[], registrosBytes: RegistroBytes
 /**
  * COMPONENTE PRINCIPAL
  */
-export default function CnabViewer() {
+function CnabShell() {
+  const {
+    banco,
+    bancos,
+    campoSelecionado,
+    contentRevision,
+    hashArquivo,
+    layoutDetection,
+    linhas,
+    nomeArquivo,
+    origemBytes,
+    registrosBytes,
+    resumoValidacao,
+    temBomUtf8,
+    texto,
+    atualizarTexto,
+    carregarArquivo,
+    selecionarCampo,
+    setBanco,
+  } = useCnab();
   const overlayRef = useRef<HTMLPreElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [texto, setTexto] = useState("");
-  const [bytesArquivo, setBytesArquivo] = useState<Uint8Array>(new Uint8Array());
   const [inputScrollTop, setInputScrollTop] = useState(0);
-  const [origemBytes, setOrigemBytes] = useState<"paste" | "file">("paste");
-  const [nomeArquivo, setNomeArquivo] = useState("");
-  const [hashArquivo, setHashArquivo] = useState("");
-  const [campoSelecionado, setCampoSelecionado] = useState<CampoSelecionado | null>(null);
-  const [banco, setBanco] = useState<Banco>("CAIXASIGCB");
-
-  const registrosBytes = useMemo(() => analisarRegistrosBytes(bytesArquivo), [bytesArquivo]);
-  const linhas = useMemo(() => decodificarRegistros(registrosBytes), [registrosBytes]);
-  const temBomUtf8 = useMemo(() => comecaComBomUtf8(bytesArquivo), [bytesArquivo]);
-  const resumoValidacao = useMemo(() => {
-    const totalBytesConteudo = registrosBytes.reduce((total, registro) => total + registro.tamanhoConteudo, 0);
-    const tamanhoInvalido = registrosBytes.find((registro) => registro.tamanhoConteudo !== CNAB_RECORD_BYTES);
-    const linhasMultibyte = registrosBytes
-      .map((registro, index) => (registro.temMultibyte ? index + 1 : null))
-      .filter((linha): linha is number => linha !== null);
-    const linhasComCr = registrosBytes
-      .map((registro, index) => (registro.quebra === "CR" ? index + 1 : null))
-      .filter((linha): linha is number => linha !== null);
-
-    return {
-      totalBytesConteudo,
-      bytesInvalidos: Boolean(tamanhoInvalido),
-      resumoBytes: registrosBytes.length === 0 ? 0 : tamanhoInvalido?.tamanhoConteudo ?? CNAB_RECORD_BYTES,
-      linhasMultibyte,
-      linhasComCr,
-      detalheTamanhoInvalido: tamanhoInvalido
-        ? `Linha ${registrosBytes.indexOf(tamanhoInvalido) + 1}: ${tamanhoInvalido.tamanhoConteudo} bytes de conteudo, ${tamanhoInvalido.tamanhoBruto} bytes com ${tamanhoInvalido.quebra}`
-        : "240 bytes por registro",
-    };
-  }, [registrosBytes]);
+  const [dismissedLayoutSuggestion, setDismissedLayoutSuggestion] = useState("");
   const overlayContent = useMemo(
     () => renderInputOverlay(linhas, registrosBytes, campoSelecionado),
     [campoSelecionado, linhas, registrosBytes]
   );
+  const suggestedLayout = layoutDetection.candidates[0];
+  const currentBankBrand = getBankBrand(banco);
+  const suggestedBankBrand = suggestedLayout ? getBankBrand(suggestedLayout.banco) : null;
+  const layoutSuggestionKey = suggestedLayout
+    ? `${contentRevision}-${suggestedLayout.banco}-${suggestedLayout.score}`
+    : "";
+  const showLayoutSuggestion =
+    registrosBytes.length > 0 &&
+    suggestedLayout &&
+    suggestedLayout.score >= 50 &&
+    dismissedLayoutSuggestion !== layoutSuggestionKey;
+  const suggestedLayoutAlreadySelected = suggestedLayout?.banco === banco;
 
-  useEffect(() => {
-    let ativo = true;
+  const dismissLayoutSuggestion = () => {
+    setDismissedLayoutSuggestion(layoutSuggestionKey);
+  };
 
-    void calcularHashSha256(bytesArquivo).then((hash) => {
-      if (ativo) setHashArquivo(hash);
-    });
-
-    return () => {
-      ativo = false;
-    };
-  }, [bytesArquivo]);
-
-  const atualizarTexto = useCallback((valor: string) => {
-    setTexto(valor);
-    setBytesArquivo(textEncoder.encode(valor));
-    setOrigemBytes("paste");
-    setNomeArquivo("");
-  }, []);
-
-  const selecionarCampo = useCallback((selecao: CampoSelecionado) => {
-    setCampoSelecionado(selecao);
-  }, []);
-
-  const carregarArquivo = useCallback(async (arquivo: File) => {
-    const bytes = new Uint8Array(await arquivo.arrayBuffer());
-    const registros = analisarRegistrosBytes(bytes);
-
-    setBytesArquivo(bytes);
-    setTexto(decodificarRegistros(registros).join("\n"));
-    setOrigemBytes("file");
-    setNomeArquivo(arquivo.name);
-    setCampoSelecionado(null);
-  }, []);
+  const applySuggestedLayout = () => {
+    if (!suggestedLayout) return;
+    setBanco(suggestedLayout.banco);
+    setDismissedLayoutSuggestion(layoutSuggestionKey);
+  };
 
   return (
     <>
@@ -670,7 +484,18 @@ export default function CnabViewer() {
         </S.WindowControls>
         <S.TitlebarCopy>
           <S.Eyebrow>CNAB240</S.Eyebrow>
-          <S.Title>Visualizador de Remessa e Retorno</S.Title>
+          <S.TitleLine>
+            {currentBankBrand && (
+              <S.BankLogo
+                src={currentBankBrand.logoUrl}
+                alt={`Logo ${currentBankBrand.nome}`}
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            )}
+            <S.Title>CNAB Studio</S.Title>
+          </S.TitleLine>
         </S.TitlebarCopy>
         <S.TitlebarStatus>
           <S.Pill>{linhas.length} linhas</S.Pill>
@@ -680,124 +505,188 @@ export default function CnabViewer() {
         </S.TitlebarStatus>
       </S.Titlebar>
 
-      <S.Workspace>
-        <S.EditorPanel>
-          <S.Toolbar>
-            <S.ToolbarMain>
-              <S.ControlGroup>
-                <S.PlainText>Layout</S.PlainText>
-                <S.Select value={banco} onChange={e => setBanco(e.target.value as Banco)}>
-                  {bancos.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </S.Select>
-              </S.ControlGroup>
+      <S.AppBody>
+        <S.Sidebar aria-label="Navegacao principal">
+          <S.SidebarTitle>Ferramentas</S.SidebarTitle>
+          <S.SidebarNav>
+            <S.SidebarGroup>
+              <S.SidebarGroupTitle>Principal</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/visualizer">
+                Analisar arquivo
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/diagnostics">
+                Diagnóstico
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/summary">
+                Resumo
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/layout-detection">
+                Detectar layout
+              </S.SidebarLink>
+            </S.SidebarGroup>
 
-              <S.Metrics>
-                <S.HiddenFileInput
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={(event) => {
-                    const arquivo = event.target.files?.[0];
-                    if (arquivo) void carregarArquivo(arquivo);
-                    event.target.value = "";
-                  }}
-                />
-                <S.ActionButton type="button" onClick={() => fileInputRef.current?.click()}>
-                  Abrir arquivo
+            <S.SidebarGroup>
+              <S.SidebarGroupTitle>Validações</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/trailer-validation">
+                Trailer
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/field-validation">
+                Campos
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/sequence-validation">
+                Sequência
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/date-validation">
+                Datas
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/amount-validation">
+                Valores
+              </S.SidebarLink>
+            </S.SidebarGroup>
+
+            <S.SidebarGroup>
+              <S.SidebarGroupTitle>Exploração</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/file-map">
+                Mapa visual
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/line-details">
+                Detalhes da linha
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/search">
+                Busca
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/advanced-filter">
+                Filtro avançado
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/batch-dashboard">
+                Dashboard lote
+              </S.SidebarLink>
+            </S.SidebarGroup>
+
+            <S.SidebarGroup>
+              <S.SidebarGroupTitle>Comparação</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/compare">
+                Arquivos
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/field-compare">
+                Campos
+              </S.SidebarLink>
+            </S.SidebarGroup>
+
+            <S.SidebarGroup>
+              <S.SidebarGroupTitle>Exportação</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/csv-export">
+                CSV
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/export-report">
+                Relatório
+              </S.SidebarLink>
+            </S.SidebarGroup>
+
+            <S.SidebarGroup>
+              <S.SidebarGroupTitle>Apoio</S.SidebarGroupTitle>
+              <S.SidebarLink as={NavLink} to="/field-dictionary">
+                Dicionário
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/line-editor">
+                Editor assistido
+              </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/minimal-generator">
+                Gerador mínimo
+              </S.SidebarLink>
+            </S.SidebarGroup>
+          </S.SidebarNav>
+        </S.Sidebar>
+
+        <AppRoutes
+          banco={banco}
+          bancos={bancos}
+          campoSelecionado={campoSelecionado}
+          detailsPanel={<InfoBox selecao={campoSelecionado} />}
+          fileInputRef={fileInputRef}
+          hashArquivo={hashArquivo}
+          inputScrollTop={inputScrollTop}
+          nomeArquivo={nomeArquivo}
+          overlayContent={overlayContent}
+          overlayRef={overlayRef}
+          origemBytes={origemBytes}
+          registrosBytes={registrosBytes}
+          resumoValidacao={resumoValidacao}
+          setBanco={setBanco}
+          setInputScrollTop={setInputScrollTop}
+          temBomUtf8={temBomUtf8}
+          texto={texto}
+          atualizarTexto={atualizarTexto}
+          carregarArquivo={carregarArquivo}
+          viewerOutput={<VirtualizedCnabOutput linhas={linhas} banco={banco} onSelect={selecionarCampo} />}
+        />
+      </S.AppBody>
+      <AnimatePresence>
+        {showLayoutSuggestion && (
+          <S.ModalBackdrop
+            as={motion.div}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            onClick={dismissLayoutSuggestion}
+          >
+            <S.ModalCard
+              as={motion.div}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="layout-suggestion-title"
+              initial={{ opacity: 0, y: 18, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.97 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <S.ModalHeader>
+                {suggestedBankBrand && (
+                  <S.ModalLogo
+                    src={suggestedBankBrand.logoUrl}
+                    alt={`Logo ${suggestedBankBrand.nome}`}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
+                <S.ModalEyebrow>Layout sugerido</S.ModalEyebrow>
+              </S.ModalHeader>
+              <S.ModalTitle id="layout-suggestion-title">
+                {suggestedLayoutAlreadySelected ? `${suggestedLayout.label} detectado` : `Trocar para ${suggestedLayout.label}?`}
+              </S.ModalTitle>
+              <S.ModalText>
+                {suggestedLayoutAlreadySelected
+                  ? `O arquivo parece combinar com o layout atual, ${suggestedLayout.label} (${suggestedLayout.score}% de confiança).`
+                  : `O arquivo parece combinar melhor com ${suggestedLayout.label} (${suggestedLayout.score}% de confiança). Quer trocar o layout do visualizador agora?`}
+              </S.ModalText>
+              <S.ModalActions>
+                <S.ActionButton type="button" onClick={applySuggestedLayout}>
+                  {suggestedLayoutAlreadySelected ? "Manter layout" : "Trocar layout"}
                 </S.ActionButton>
-                <S.Pill>{resumoValidacao.totalBytesConteudo} bytes conteudo</S.Pill>
-                <S.Pill>{campoSelecionado?.campo.label ?? "Nenhum campo ativo"}</S.Pill>
-              </S.Metrics>
-            </S.ToolbarMain>
-            <S.LineBreakHeader>Quebra</S.LineBreakHeader>
-          </S.Toolbar>
-
-          <S.CnabInputShell>
-            <S.CnabInputEditor>
-              <S.CnabInputOverlay ref={overlayRef} aria-hidden="true">
-                {overlayContent}
-              </S.CnabInputOverlay>
-              <S.CnabInput
-                rows={7}
-                wrap="off"
-                spellCheck={false}
-                placeholder="Cole o conteudo CNAB aqui..."
-                value={texto}
-                onScroll={(event) => {
-                  setInputScrollTop(event.currentTarget.scrollTop);
-                  if (!overlayRef.current) return;
-                  overlayRef.current.scrollTop = event.currentTarget.scrollTop;
-                  overlayRef.current.scrollLeft = event.currentTarget.scrollLeft;
-                }}
-                onChange={(e) => atualizarTexto(e.target.value)}
-              />
-            </S.CnabInputEditor>
-            <S.LineBreakColumn aria-hidden="true">
-              <S.LineBreakRows>
-                <S.LineBreakMarkerTrack $scrollTop={inputScrollTop}>
-                  {registrosBytes.length > 0 ? (
-                    registrosBytes.map((registro, index) => (
-                      <S.LineBreakMarkerRow key={`${index}-${registro.quebra}`}>
-                        <S.LineBreakBadge>{registro.quebra}</S.LineBreakBadge>
-                      </S.LineBreakMarkerRow>
-                    ))
-                  ) : (
-                    <S.LineBreakMarkerRow>
-                      <S.LineBreakEmpty>-</S.LineBreakEmpty>
-                    </S.LineBreakMarkerRow>
-                  )}
-                </S.LineBreakMarkerTrack>
-              </S.LineBreakRows>
-            </S.LineBreakColumn>
-          </S.CnabInputShell>
-
-          {(resumoValidacao.bytesInvalidos || temBomUtf8 || resumoValidacao.linhasMultibyte.length > 0 || resumoValidacao.linhasComCr.length > 0 || origemBytes === "paste") && (
-            <S.ValidationSummary>
-              {resumoValidacao.bytesInvalidos && <S.ValidationItem $tone="error">{resumoValidacao.detalheTamanhoInvalido}</S.ValidationItem>}
-              {temBomUtf8 && <S.ValidationItem $tone="warning">Arquivo inicia com BOM UTF-8 (EF BB BF).</S.ValidationItem>}
-              {resumoValidacao.linhasMultibyte.length > 0 && (
-                <S.ValidationItem $tone="warning">
-                  Caracteres multibyte nas linhas {resumoValidacao.linhasMultibyte.join(", ")}; uma posicao visual pode ocupar mais de 1 byte.
-                </S.ValidationItem>
-              )}
-              {resumoValidacao.linhasComCr.length > 0 && (
-                <S.ValidationItem $tone="warning">Quebra CR isolada nas linhas {resumoValidacao.linhasComCr.join(", ")}.</S.ValidationItem>
-              )}
-              {origemBytes === "paste" && texto && (
-                <S.ValidationItem $tone="info">Conteudo colado validado pelos bytes UTF-8 gerados no navegador. Para validar o arquivo bruto, use Abrir arquivo.</S.ValidationItem>
-              )}
-            </S.ValidationSummary>
-          )}
-
-          <S.Legend>
-            <S.LegendItem><S.LegendShortcut>X</S.LegendShortcut> Alfanumerico</S.LegendItem>
-            <S.LegendItem><S.LegendShortcut>N</S.LegendShortcut> Numerico</S.LegendItem>
-            <S.LegendItem><S.LegendShortcut>B</S.LegendShortcut> Branco</S.LegendItem>
-          </S.Legend>
-        </S.EditorPanel>
-
-        <InfoBox selecao={campoSelecionado} />
-
-        <S.ViewerPanel>
-          <S.PanelHeader>
-            <S.FileInfo>
-              <S.PlainText>Arquivo interpretado: {nomeArquivo || "conteudo colado"}</S.PlainText>
-              {hashArquivo && <S.HashText>SHA-256: {hashArquivo}</S.HashText>}
-            </S.FileInfo>
-            <S.PlainText>{bancos.find((item) => item.value === banco)?.label}</S.PlainText>
-          </S.PanelHeader>
-
-          <VirtualizedCnabOutput linhas={linhas} banco={banco} onSelect={selecionarCampo} />
-        </S.ViewerPanel>
-      </S.Workspace>
+                <S.ActionButton type="button" onClick={dismissLayoutSuggestion}>
+                  Agora não
+                </S.ActionButton>
+              </S.ModalActions>
+            </S.ModalCard>
+          </S.ModalBackdrop>
+        )}
+      </AnimatePresence>
       <S.Statusbar>
-        <S.PlainText>Pronto</S.PlainText>
-        <S.PlainText>Selecione trechos coloridos para inspecionar o layout</S.PlainText>
+        <S.PlainText>CNAB Studio v1.1.0</S.PlainText>
+        <S.PlainText>by: Kaneyo</S.PlainText>
       </S.Statusbar>
     </S.AppShell>
     </>
+  );
+}
+
+export default function CnabViewer() {
+  return (
+    <CnabProvider>
+      <CnabShell />
+    </CnabProvider>
   );
 }
