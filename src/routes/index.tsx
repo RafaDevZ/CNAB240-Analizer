@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import type { Banco, CampoSelecionado, RegistroBytes, ResumoValidacao } from "../contexts/CnabContext";
 import AdvancedFilterPage from "../pages/AdvancedFilter";
 import AmountValidationPage from "../pages/AmountValidation";
+import BarcodeGeneratorPage from "../pages/BarcodeGenerator";
 import BatchDashboardPage from "../pages/BatchDashboard";
 import CnabExportPage from "../pages/CnabExport";
 import CsvExportPage from "../pages/CsvExport";
@@ -71,6 +72,7 @@ export default function AppRoutes(props: AppRoutesProps) {
       <Route path="/sequence-validation" element={<SequenceValidationPage />} />
       <Route path="/csv-export" element={<CsvExportPage />} />
       <Route path="/cnab-export" element={<CnabExportPage />} />
+      <Route path="/barcode-generator" element={<BarcodeGeneratorPage />} />
       <Route path="/minimal-generator" element={<MinimalGeneratorPage />} />
       <Route path="/sql-cnab-editor" element={<SqlCnabEditorPage />} />
       <Route path="/export-report" element={<ExportReportPage />} />

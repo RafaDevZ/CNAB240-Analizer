@@ -520,6 +520,9 @@ function CnabShell() {
               <S.SidebarLink as={NavLink} to="/cnab-export">
                 CNAB bancário
               </S.SidebarLink>
+              <S.SidebarLink as={NavLink} to="/barcode-generator">
+                Código de barras
+              </S.SidebarLink>
               <S.SidebarLink as={NavLink} to="/csv-export">
                 CSV
               </S.SidebarLink>

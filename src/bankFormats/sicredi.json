@@ -1,0 +1,44 @@
+{
+  "id": "sicredi",
+  "label": "Sicredi",
+  "codigoBanco": "748",
+  "moeda": "9",
+  "instructions": "Formato modular para boleto. Ajuste campos, templates e algoritmos para criar novos bancos mantendo a mesma tela.",
+  "fields": [
+    { "name": "codigoBanco", "label": "Banco", "length": 3, "type": "numeric", "defaultValue": "748" },
+    { "name": "agencia", "label": "Agência", "length": 4, "type": "numeric", "defaultValue": "1234" },
+    { "name": "agenciaDigito", "label": "DV agência", "length": 1, "type": "numeric", "defaultValue": "0" },
+    { "name": "posto", "label": "Posto", "length": 2, "type": "numeric", "defaultValue": "01" },
+    { "name": "beneficiario", "label": "Beneficiário", "length": 5, "type": "numeric", "defaultValue": "12345" },
+    { "name": "ano", "label": "Ano", "length": 2, "type": "numeric", "defaultValue": "26" },
+    { "name": "byte", "label": "Byte", "length": 1, "type": "numeric", "defaultValue": "2" },
+    { "name": "sequencial", "label": "Sequencial", "length": 5, "type": "numeric", "defaultValue": "1" },
+    { "name": "parcela", "label": "Parcela", "length": 1, "type": "numeric", "defaultValue": "1" },
+    { "name": "dataVencimento", "label": "Data vencimento", "length": 10, "type": "date", "defaultValue": "2025-02-22" },
+    { "name": "fatorVencimento", "label": "Fator vencimento", "length": 4, "type": "numeric", "defaultValue": "1000", "disabled": true, "disabledReason": "Calculado pela data de vencimento", "derives": "dataVencimento" },
+    { "name": "valor", "label": "Valor em centavos", "length": 10, "type": "numeric", "defaultValue": "15000" }
+  ],
+  "nossoNumero": {
+    "label": "Nosso número",
+    "template": "{ano}{byte}{sequencial}{parcela}",
+    "displayTemplate": "{ano}/{byte}{sequencial}{parcela}-{dv}",
+    "dv": {
+      "algorithm": "modulo11",
+      "weights": [2, 3, 4, 5, 6, 7, 8, 9],
+      "direction": "rightToLeft",
+      "rule": "boleto"
+    }
+  },
+  "boleto": {
+    "dueFactorRules": [
+      { "startDate": "1997-10-07", "endDate": "2025-02-21", "baseDate": "1997-10-07", "baseFactor": 0 },
+      { "startDate": "2025-02-22", "baseDate": "2025-02-22", "baseFactor": 1000 }
+    ],
+    "freeFieldTemplate": "{nossoNumero}{agencia}{posto}{beneficiario}10",
+    "barcodeTemplate": "{codigoBanco}{moeda}{dvGeral}{fatorVencimento}{valor}{campoLivre}",
+    "linhaDigitavel": {
+      "fieldDvAlgorithm": "modulo10",
+      "barcodeDvAlgorithm": "modulo11Boleto"
+    }
+  }
+}
